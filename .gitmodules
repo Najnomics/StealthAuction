@@ -17,3 +17,18 @@
 [submodule "lib/uniswap-solidity-hooks-template"]
 	path = lib/uniswap-solidity-hooks-template
 	url = https://github.com/OpenZeppelin/uniswap-solidity-hooks-template
+[submodule "context/cofhe-scaffold-eth"]
+	path = context/cofhe-scaffold-eth
+	url = https://github.com/FhenixProtocol/cofhe-scaffold-eth.git
+[submodule "context/cofhejs"]
+	path = context/cofhejs
+	url = https://github.com/FhenixProtocol/cofhejs.git
+[submodule "context/fhe-hook-template"]
+	path = context/fhe-hook-template
+	url = https://github.com/marronjo/fhe-hook-template.git
+[submodule "context/fhe-market-order"]
+	path = context/fhe-market-order
+	url = https://github.com/marronjo/fhe-market-order.git
+[submodule "context/iceberg-cofhe"]
+	path = context/iceberg-cofhe
+	url = https://github.com/marronjo/iceberg-cofhe.git
