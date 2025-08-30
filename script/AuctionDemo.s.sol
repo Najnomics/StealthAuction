@@ -7,6 +7,7 @@ import {Config} from "./base/Config.sol";
 import {EncryptedDutchAuction} from "../src/EncryptedDutchAuction.sol";
 import {AuctionToken} from "../src/AuctionToken.sol";
 import {FHE, InEuint128, InEuint64} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 
 // FHE Imports
 import {CoFheTest} from "@fhenixprotocol/cofhe-mock-contracts/CoFheTest.sol";
@@ -55,6 +56,7 @@ contract AuctionDemoScript is Script, Constants, Config, CoFheTest {
 
         // Create auction
         auctionId = auction.createEncryptedAuction(
+            PoolId.wrap(0), // Using zero pool ID as placeholder
             address(auctionToken),
             encStartPrice,
             encEndPrice,

@@ -19,7 +19,11 @@ contract EncryptedDutchAuctionScript is Script, Constants {
         console.log("PoolManager:", address(POOLMANAGER));
 
         // Hook contracts must have specific flags encoded in the address
-        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG);
+        // Complete hook coverage: afterInitialize, beforeAddLiquidity, beforeSwap, afterSwap
+        uint160 flags = uint160(
+            Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | 
+            Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+        );
 
         // Mine a salt that will produce a hook address with the correct flags
         bytes memory constructorArgs = abi.encode(POOLMANAGER);
@@ -42,7 +46,10 @@ contract EncryptedDutchAuctionScript is Script, Constants {
 
         console.log("EncryptedDutchAuction deployed at:", address(auctionHook));
         console.log("Hook permissions:");
+        console.log("  afterInitialize:", auctionHook.getHookPermissions().afterInitialize);
+        console.log("  beforeAddLiquidity:", auctionHook.getHookPermissions().beforeAddLiquidity);
         console.log("  beforeSwap:", auctionHook.getHookPermissions().beforeSwap);
+        console.log("  afterSwap:", auctionHook.getHookPermissions().afterSwap);
         
         return auctionHook;
     }

@@ -58,9 +58,12 @@ contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
         deployFreshManagerAndRouters();
         deployPosm(manager);
 
-        // Deploy the hook to an address with the correct flags (test pattern)
+        // Deploy the hook to an address with the correct flags (all 4 hooks we use)
         address flags = address(
-            uint160(Hooks.BEFORE_SWAP_FLAG) ^ (0x4444 << 144) // Namespace to avoid collisions
+            uint160(
+                Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | 
+                Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+            ) ^ (0x4444 << 144) // Namespace to avoid collisions
         );
         bytes memory constructorArgs = abi.encode(manager);
         deployCodeTo("EncryptedDutchAuction.sol:EncryptedDutchAuction", constructorArgs, flags);
@@ -121,6 +124,7 @@ contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
         emit AuctionCreated(1, seller, address(auctionToken), block.timestamp);
 
         uint256 auctionId = hook.createEncryptedAuction(
+            poolId, // poolId parameter
             address(auctionToken),
             encStartPrice,
             encEndPrice,
@@ -160,6 +164,7 @@ contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
             InEuint128 memory encSupply = createInEuint128(uint128(AUCTION_SUPPLY), seller);
 
             uint256 auctionId = hook.createEncryptedAuction(
+                poolId, // poolId parameter
                 address(auctionToken),
                 encStartPrice,
                 encEndPrice,
@@ -366,21 +371,31 @@ contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
     function test_HookPermissions() public {
         Hooks.Permissions memory permissions = hook.getHookPermissions();
         
+        // Test our 4 enabled hooks
+        assertTrue(permissions.afterInitialize, "Should have afterInitialize permission");
+        assertTrue(permissions.beforeAddLiquidity, "Should have beforeAddLiquidity permission");
         assertTrue(permissions.beforeSwap, "Should have beforeSwap permission");
-        assertFalse(permissions.afterSwap, "Should not have afterSwap permission");
+        assertTrue(permissions.afterSwap, "Should have afterSwap permission");
+        
+        // Test disabled hooks
         assertFalse(permissions.beforeInitialize, "Should not have beforeInitialize permission");
-        assertFalse(permissions.afterInitialize, "Should not have afterInitialize permission");
+        assertFalse(permissions.afterAddLiquidity, "Should not have afterAddLiquidity permission");
+        assertFalse(permissions.beforeRemoveLiquidity, "Should not have beforeRemoveLiquidity permission");
+        assertFalse(permissions.afterRemoveLiquidity, "Should not have afterRemoveLiquidity permission");
     }
 
     function test_BeforeSwapHook() public {
         // Note: This tests the hook callback but doesn't test swap functionality
         // as that would require more complex pool setup
         
-        // The hook should be deployed with correct flags
+        // The hook should be deployed with all 4 flags we use
         uint160 actualFlags = uint160(hookAddr) & Hooks.ALL_HOOK_MASK;
-        uint160 expectedFlags = uint160(Hooks.BEFORE_SWAP_FLAG);
+        uint160 expectedFlags = uint160(
+            Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | 
+            Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+        );
         
-        assertEq(actualFlags, expectedFlags, "Hook should have correct flags");
+        assertEq(actualFlags, expectedFlags, "Hook should have correct flags for all 4 enabled hooks");
     }
 
     // =============================================================
@@ -472,6 +487,7 @@ contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
             InEuint128 memory encSupply = createInEuint128(uint128(AUCTION_SUPPLY), seller);
 
             auctionIds[i] = hook.createEncryptedAuction(
+                poolId, // poolId parameter
                 address(auctionToken),
                 encStartPrice,
                 encEndPrice,
@@ -523,6 +539,7 @@ contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
         InEuint128 memory encSupply = createInEuint128(uint128(AUCTION_SUPPLY), seller);
 
         auctionId = hook.createEncryptedAuction(
+            poolId, // poolId parameter
             address(auctionToken),
             encStartPrice,
             encEndPrice,
