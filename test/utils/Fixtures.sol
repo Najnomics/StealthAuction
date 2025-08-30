@@ -4,13 +4,9 @@ pragma solidity ^0.8.26;
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
-import {PositionManager} from "v4-periphery/src/PositionManager.sol";
 import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";
-import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
-import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
-import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {DeployPermit2} from "./forks/DeployPermit2.sol";
 
 // Custom deployers to support auction tokens
@@ -48,8 +44,8 @@ contract Fixtures is Deployers, DeployPermit2 {
         int24 tickUpper
     ) internal returns (uint256 tokenId) {
         // Mint tokens to posm
-        IERC20(Currency.unwrap(key.currency0)).transfer(address(posm), amount0);
-        IERC20(Currency.unwrap(key.currency1)).transfer(address(posm), amount1);
+        require(IERC20(Currency.unwrap(key.currency0)).transfer(address(posm), amount0), "Transfer failed");
+        require(IERC20(Currency.unwrap(key.currency1)).transfer(address(posm), amount1), "Transfer failed");
 
         // Create position
         return uint256(keccak256(abi.encode(address(this), tickLower, tickUpper)));

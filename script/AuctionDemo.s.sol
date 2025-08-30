@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/Script.sol";
+import {Script, console} from "forge-std/Script.sol";
 import {Constants} from "./base/Constants.sol";
 import {Config} from "./base/Config.sol";
 import {StealthAuction} from "../src/StealthAuction.sol";
-import {AuctionToken} from "../src/AuctionToken.sol";
-import {FHE, InEuint128, InEuint64} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import {InEuint128, InEuint64} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 
 // FHE Imports
@@ -17,13 +16,13 @@ contract AuctionDemoScript is Script, Constants, Config, CoFheTest {
     StealthAuction auction;
 
     function setUp() public {
-        auction = StealthAuction(address(hookContract));
+        auction = StealthAuction(address(HOOK_CONTRACT));
     }
 
     function run() public {
         console.log("=== StealthAuction Demo ===");
         console.log("Hook address:", address(auction));
-        console.log("Auction token:", address(auctionToken));
+        console.log("Auction token:", address(AUCTION_TOKEN));
         console.log("Seller:", msg.sender);
 
         // Demo: Create an encrypted auction
@@ -44,8 +43,8 @@ contract AuctionDemoScript is Script, Constants, Config, CoFheTest {
         vm.startBroadcast();
 
         // Mint tokens for auction
-        auctionToken.mint(msg.sender, DEFAULT_SUPPLY);
-        auctionToken.approve(address(auction), DEFAULT_SUPPLY);
+        AUCTION_TOKEN.mint(msg.sender, DEFAULT_SUPPLY);
+        AUCTION_TOKEN.approve(address(auction), DEFAULT_SUPPLY);
 
         // Create encrypted inputs using CoFHE test helpers
         // For demo, using mock encryption
@@ -57,7 +56,7 @@ contract AuctionDemoScript is Script, Constants, Config, CoFheTest {
         // Create auction
         auctionId = auction.createEncryptedAuction(
             PoolId.wrap(0), // Using zero pool ID as placeholder
-            address(auctionToken),
+            address(AUCTION_TOKEN),
             encStartPrice,
             encEndPrice,
             encDuration,

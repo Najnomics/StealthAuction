@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {AuctionToken} from "../src/AuctionToken.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 
 /// @title AuctionToken Test Suite
 /// @notice Comprehensive tests for auction token functionality
@@ -235,7 +235,7 @@ contract AuctionTokenTest is Test {
         token.mint(user1, amount);
         
         vm.startPrank(user1);
-        token.transfer(user2, 30 ether);
+        require(token.transfer(user2, 30 ether), "Transfer failed");
         vm.stopPrank();
 
         assertEq(token.balanceOf(user1), 70 ether);
@@ -255,7 +255,7 @@ contract AuctionTokenTest is Test {
         assertEq(token.allowance(user1, user2), 50 ether);
         
         vm.startPrank(user2);
-        token.transferFrom(user1, user3, 30 ether);
+        require(token.transferFrom(user1, user3, 30 ether), "TransferFrom failed");
         vm.stopPrank();
 
         assertEq(token.balanceOf(user1), 70 ether);
@@ -278,7 +278,7 @@ contract AuctionTokenTest is Test {
         
         // 2. Users transfer tokens
         vm.prank(user1);
-        token.transfer(user3, 100 ether);
+        require(token.transfer(user3, 100 ether), "Transfer failed");
         
         // 3. Owner burns some tokens
         vm.startPrank(owner);

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {AuctionLibrary} from "../src/lib/AuctionLibrary.sol";
-import {FHE, InEuint128, InEuint64, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import {FHE, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 import {CoFheTest} from "@fhenixprotocol/cofhe-mock-contracts/CoFheTest.sol";
 
 /// @title AuctionLibrary Test Suite

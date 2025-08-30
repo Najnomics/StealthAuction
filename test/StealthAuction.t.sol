@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 // Foundry Imports
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 // Uniswap Imports
 import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
@@ -18,7 +18,7 @@ import {StealthAuction} from "../src/StealthAuction.sol";
 import {AuctionToken} from "../src/AuctionToken.sol";
 
 // FHE Imports
-import {FHE, InEuint128, InEuint64, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import {InEuint128, InEuint64} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 import {CoFheTest} from "@fhenixprotocol/cofhe-mock-contracts/CoFheTest.sol";
 
 /// @title StealthAuction Test Suite  

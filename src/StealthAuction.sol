@@ -22,7 +22,7 @@ import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
-import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
+import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
@@ -33,7 +33,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
 // FHE Imports - Using the real CoFHE library
-import {FHE, InEuint128, InEuint64, InEbool, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import {FHE, InEuint128, InEuint64, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
 // Local Library Imports
 import {AuctionLibrary} from "./lib/AuctionLibrary.sol";
@@ -598,7 +598,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
 
     function updateAuctionPostSwap(
         PoolId poolId,
-        SwapParams calldata params,
+        SwapParams calldata /* params */,
         BalanceDelta delta
     ) internal {
         uint256[] memory activeAuctions = getActiveAuctionsForPool(poolId);
@@ -730,7 +730,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         address[] memory auctionBidders = bidders[auctionId];
 
         for (uint256 i = 0; i < auctionBidders.length; i++) {
-            settleBidWithFHE(auctionId, auctionBidders[i]);
+            settleBidWithFhe(auctionId, auctionBidders[i]);
         }
 
         // Remove from pool tracking
@@ -741,7 +741,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         emit AuctionSettled(auctionId, 0, auctionBidders.length);
     }
 
-    function settleBidWithFHE(uint256 auctionId, address bidder) internal {
+    function settleBidWithFhe(uint256 auctionId, address bidder) internal {
         BidData storage bid = bids[auctionId][bidder];
         DutchAuctionData storage auction = auctions[auctionId];
 

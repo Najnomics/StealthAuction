@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import "forge-std/Script.sol";
+import {Script, console} from "forge-std/Script.sol";
 import {StealthAuctionScript} from "./StealthAuction.s.sol";
 import {DeployTokensScript} from "./DeployTokens.s.sol";
 import {CreatePoolAndMintLiquidityScript} from "./01_CreatePoolAndMintLiquidity.s.sol";
