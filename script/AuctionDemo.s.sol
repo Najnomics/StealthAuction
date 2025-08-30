@@ -27,13 +27,13 @@ contract AuctionDemoScript is Script, Constants, Config, CoFheTest {
 
         // Demo: Create an encrypted auction
         uint256 auctionId = createDemoAuction();
-        
+
         // Demo: Submit encrypted bids
         submitDemoBids(auctionId);
-        
+
         // Demo: Check auction info
         checkAuctionInfo(auctionId);
-        
+
         console.log("=== Demo Complete ===");
     }
 
@@ -68,13 +68,13 @@ contract AuctionDemoScript is Script, Constants, Config, CoFheTest {
 
         console.log("Auction created with ID:", auctionId);
         console.log("Encrypted parameters set (start/end price, duration hidden)");
-        
+
         return auctionId;
     }
 
     function submitDemoBids(uint256 auctionId) public {
         console.log("\n--- Submitting Encrypted Bids ---");
-        
+
         // Create demo bidders
         address bidder1 = address(0x1111);
         address bidder2 = address(0x2222);
@@ -87,7 +87,7 @@ contract AuctionDemoScript is Script, Constants, Config, CoFheTest {
         vm.stopBroadcast();
         console.log("Bidder1 submitted encrypted bid");
 
-        // Bid 2: Medium bid (5 ETH) 
+        // Bid 2: Medium bid (5 ETH)
         vm.startBroadcast(bidder2);
         InEuint128 memory bid2 = createInEuint128(uint128(5 ether), bidder2);
         auction.submitEncryptedBid(auctionId, bid2);
@@ -106,15 +106,9 @@ contract AuctionDemoScript is Script, Constants, Config, CoFheTest {
 
     function checkAuctionInfo(uint256 auctionId) public view {
         console.log("\n--- Auction Information ---");
-        
-        (
-            address seller,
-            address token,
-            bool isActive,
-            bool revealed,
-            uint256 bidderCount,
-            uint256 queueLength
-        ) = auction.getAuctionInfo(auctionId);
+
+        (address seller, address token, bool isActive, bool revealed, uint256 bidderCount, uint256 queueLength) =
+            auction.getAuctionInfo(auctionId);
 
         console.log("Seller:", seller);
         console.log("Token:", token);
@@ -131,22 +125,22 @@ contract AuctionDemoScript is Script, Constants, Config, CoFheTest {
     /// @notice Demo settlement (would be called after auction period)
     function settleDemoAuction(uint256 auctionId) public {
         console.log("\n--- Settling Auction ---");
-        
+
         vm.startBroadcast();
         auction.settleAuction(auctionId);
         vm.stopBroadcast();
-        
+
         console.log("Auction settled - tokens distributed to winning bidders");
     }
 
     /// @notice Demo parameter reveal (optional)
     function revealDemoParameters(uint256 auctionId) public {
         console.log("\n--- Revealing Parameters ---");
-        
+
         vm.startBroadcast();
         auction.revealParameters(auctionId);
         vm.stopBroadcast();
-        
+
         console.log("Auction parameters revealed (if desired by seller)");
     }
 }

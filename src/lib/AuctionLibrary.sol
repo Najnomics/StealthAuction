@@ -6,7 +6,6 @@ import {FHE, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE
 /// @title AuctionLibrary
 /// @notice Library for encrypted Dutch auction price calculations and utilities
 library AuctionLibrary {
-    
     /// @notice Calculate current price with linear decay
     /// @param startPrice Encrypted starting price
     /// @param endPrice Encrypted ending price
@@ -31,7 +30,7 @@ library AuctionLibrary {
         euint128 priceDiff = FHE.sub(startPrice, endPrice);
         euint128 elapsedAs128 = FHE.asEuint128(elapsed);
         euint128 durationAs128 = FHE.asEuint128(duration);
-        
+
         // Calculate decay amount: (priceDiff * elapsed) / duration
         euint128 decay = FHE.div(FHE.mul(priceDiff, elapsedAs128), durationAs128);
         currentPrice = FHE.sub(startPrice, decay);
@@ -67,7 +66,7 @@ library AuctionLibrary {
         euint128 priceDiff = FHE.sub(startPrice, endPrice);
         euint128 elapsedAs128 = FHE.asEuint128(elapsed);
         euint128 durationAs128 = FHE.asEuint128(duration);
-        
+
         // Approximation: exponential ~ (1 - elapsed/duration)^decayRate
         euint128 decayFactor = FHE.div(elapsedAs128, durationAs128);
         euint128 decay = FHE.mul(priceDiff, decayFactor);
@@ -75,7 +74,7 @@ library AuctionLibrary {
 
         // Ensure price doesn't go below end price
         currentPrice = FHE.max(currentPrice, endPrice);
-        
+
         // Return end price if auction ended, otherwise current price
         currentPrice = FHE.select(auctionEnded, endPrice, currentPrice);
     }
@@ -86,11 +85,10 @@ library AuctionLibrary {
     /// @param remainingSupply Encrypted remaining supply
     /// @return isValid Whether the bid is valid
     /// @return allocation Calculated token allocation
-    function validateBid(
-        euint128 bidAmount,
-        euint128 currentPrice,
-        euint128 remainingSupply
-    ) internal returns (ebool isValid, euint128 allocation) {
+    function validateBid(euint128 bidAmount, euint128 currentPrice, euint128 remainingSupply)
+        internal
+        returns (ebool isValid, euint128 allocation)
+    {
         // Check if bid meets price requirement
         ebool bidMeetsPrice = FHE.gte(bidAmount, currentPrice);
 
@@ -115,10 +113,7 @@ library AuctionLibrary {
     /// @param allocation Token allocation amount
     /// @param price Price per token
     /// @return totalValue Total value of the allocation
-    function calculateValue(
-        euint128 allocation,
-        euint128 price
-    ) internal returns (euint128 totalValue) {
+    function calculateValue(euint128 allocation, euint128 price) internal returns (euint128 totalValue) {
         totalValue = FHE.mul(allocation, price);
     }
 
@@ -127,11 +122,10 @@ library AuctionLibrary {
     /// @param duration Encrypted duration
     /// @param currentTime Current timestamp
     /// @return isActive Whether auction is still active
-    function isAuctionActive(
-        euint64 startTime,
-        euint64 duration,
-        uint256 currentTime
-    ) internal returns (ebool isActive) {
+    function isAuctionActive(euint64 startTime, euint64 duration, uint256 currentTime)
+        internal
+        returns (ebool isActive)
+    {
         euint64 encCurrentTime = FHE.asEuint64(currentTime);
         euint64 elapsed = FHE.sub(encCurrentTime, startTime);
         isActive = FHE.lt(elapsed, duration);

@@ -34,10 +34,10 @@ contract BidQueueTest is Test, CoFheTest {
 
     function test_EnqueueSingle() public queueEmptyStartEnd {
         euint128 bid = FHE.asEuint128(10 ether);
-        
+
         vm.expectEmit(true, false, false, false);
         emit BidQueue.BidQueued(bid);
-        
+
         queue.enqueue(bid);
 
         assertFalse(queue.isEmpty());
@@ -47,7 +47,7 @@ contract BidQueueTest is Test, CoFheTest {
 
         vm.expectEmit(true, false, false, false);
         emit BidQueue.BidProcessed(bid);
-        
+
         euint128 dequeued = queue.dequeue();
         assertEq(euint128.unwrap(dequeued), euint128.unwrap(bid));
         assertHashValue(dequeued, 10 ether);
@@ -204,23 +204,23 @@ contract BidQueueTest is Test, CoFheTest {
 
     function test_ZeroBidValue() public queueEmptyStartEnd {
         euint128 zeroBid = FHE.asEuint128(0);
-        
+
         queue.enqueue(zeroBid);
         assertFalse(queue.isEmpty());
         assertEq(queue.length(), 1);
-        
+
         assertHashValue(queue.peek(), 0);
-        
+
         euint128 dequeued = queue.dequeue();
         assertHashValue(dequeued, 0);
     }
 
     function test_LargeBidValues() public queueEmptyStartEnd {
         euint128 largeBid = FHE.asEuint128(type(uint128).max);
-        
+
         queue.enqueue(largeBid);
         assertHashValue(queue.peek(), type(uint128).max);
-        
+
         euint128 dequeued = queue.dequeue();
         assertHashValue(dequeued, type(uint128).max);
     }
@@ -231,22 +231,22 @@ contract BidQueueTest is Test, CoFheTest {
 
     function test_ManyOperations() public {
         uint256 numOperations = 100;
-        
+
         // Fill queue
         for (uint256 i = 0; i < numOperations; i++) {
             euint128 bid = FHE.asEuint128(uint128(i * 1 ether));
             queue.enqueue(bid);
         }
-        
+
         assertEq(queue.length(), numOperations);
         assertFalse(queue.isEmpty());
-        
+
         // Empty queue in FIFO order
         for (uint256 i = 0; i < numOperations; i++) {
             euint128 dequeued = queue.dequeue();
             assertHashValue(dequeued, uint128(i * 1 ether));
         }
-        
+
         assertTrue(queue.isEmpty());
         assertEq(queue.length(), 0);
     }
@@ -266,47 +266,43 @@ contract BidQueueTest is Test, CoFheTest {
         }
 
         assertEq(queue.length(), bidValues.length);
-        
+
         // Dequeue all bids and verify FIFO order
         for (uint256 i = 0; i < bidValues.length; i++) {
             euint128 dequeued = queue.dequeue();
             assertHashValue(dequeued, bidValues[i]);
         }
-        
+
         assertTrue(queue.isEmpty());
     }
 
-    function testFuzz_MixedOperations(
-        uint128 normalBid,
-        uint128 priorityBid,
-        bool usePriority
-    ) public {
+    function testFuzz_MixedOperations(uint128 normalBid, uint128 priorityBid, bool usePriority) public {
         if (usePriority) {
             queue.enqueue(FHE.asEuint128(normalBid));
             queue.enqueuePriority(FHE.asEuint128(priorityBid));
-            
+
             assertEq(queue.length(), 2);
             assertHashValue(queue.peek(), priorityBid);
-            
+
             euint128 first = queue.dequeue();
             assertHashValue(first, priorityBid);
-            
+
             euint128 second = queue.dequeue();
             assertHashValue(second, normalBid);
         } else {
             queue.enqueue(FHE.asEuint128(normalBid));
             queue.enqueue(FHE.asEuint128(priorityBid));
-            
+
             assertEq(queue.length(), 2);
             assertHashValue(queue.peek(), normalBid);
-            
+
             euint128 first = queue.dequeue();
             assertHashValue(first, normalBid);
-            
+
             euint128 second = queue.dequeue();
             assertHashValue(second, priorityBid);
         }
-        
+
         assertTrue(queue.isEmpty());
     }
 }

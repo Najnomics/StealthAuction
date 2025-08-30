@@ -7,7 +7,6 @@ import {FHE, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE
 /// @notice Centralizes FHE.allow() calls for consistent access control
 /// @dev This library implements the critical "Define Access" step in Fhenix's 3-step CoFHE pattern
 library FHEPermissions {
-    
     /// @notice Grant comprehensive permissions for auction creation
     /// @param startPrice Encrypted starting price
     /// @param endPrice Encrypted ending price
@@ -18,7 +17,7 @@ library FHEPermissions {
     /// @param auctionContract Address of the auction contract
     function grantAuctionCreationPermissions(
         euint128 startPrice,
-        euint128 endPrice, 
+        euint128 endPrice,
         euint64 duration,
         euint128 supply,
         address seller,
@@ -30,17 +29,17 @@ library FHEPermissions {
         FHE.allow(endPrice, seller);
         FHE.allow(duration, seller);
         FHE.allow(supply, seller);
-        
+
         // Contract permissions - auction contract needs access for calculations
         FHE.allowThis(startPrice);
         FHE.allowThis(endPrice);
         FHE.allowThis(duration);
         FHE.allowThis(supply);
-        
+
         // Token permissions - token contract needs access for transfers
         FHE.allow(supply, token);
     }
-    
+
     /// @notice Grant permissions for bid operations
     /// @param bidAmount Encrypted bid amount
     /// @param allocation Encrypted token allocation
@@ -59,17 +58,17 @@ library FHEPermissions {
         // Bidder permissions - bidder needs access to their bid data
         FHE.allow(bidAmount, bidder);
         FHE.allow(allocation, bidder);
-        
+
         // Contract permissions - auction contract needs access for validation and storage
         FHE.allowThis(bidAmount);
         FHE.allowThis(allocation);
         FHE.allowThis(currentPrice);
-        
+
         // Token permissions - token contract needs access for encrypted transfers
         FHE.allow(allocation, token);
         FHE.allow(bidAmount, token);
     }
-    
+
     /// @notice Grant permissions for settlement operations
     /// @param totalAllocation Total encrypted allocation amount
     /// @param remainingSupply Remaining encrypted supply
@@ -86,15 +85,15 @@ library FHEPermissions {
         // Seller permissions - seller needs access to settlement data
         FHE.allow(totalAllocation, seller);
         FHE.allow(remainingSupply, seller);
-        
+
         // Contract permissions - auction contract needs access for calculations
         FHE.allowThis(totalAllocation);
         FHE.allowThis(remainingSupply);
-        
+
         // Token permissions - token contract needs access for final transfers
         FHE.allow(totalAllocation, token);
     }
-    
+
     /// @notice Grant permissions for pool operations
     /// @param amount0 Encrypted amount for currency0
     /// @param amount1 Encrypted amount for currency1
@@ -111,12 +110,12 @@ library FHEPermissions {
         // Currency permissions - each currency needs access to its amount
         FHE.allow(amount0, currency0);
         FHE.allow(amount1, currency1);
-        
+
         // Hook permissions - hook contract needs access for calculations
         FHE.allowThis(amount0);
         FHE.allowThis(amount1);
     }
-    
+
     /// @notice Grant permissions for swap operations
     /// @param swapAmount Encrypted swap amount
     /// @param maxAllowed Encrypted maximum allowed amount
@@ -132,13 +131,13 @@ library FHEPermissions {
     ) internal {
         // Sender permissions - sender needs access to swap data
         FHE.allow(swapAmount, sender);
-        
+
         // Hook permissions - hook contract needs access for validation
         FHE.allowThis(swapAmount);
         FHE.allowThis(maxAllowed);
         FHE.allowThis(isValid);
     }
-    
+
     /// @notice Grant permissions for time-based operations
     /// @param startTime Encrypted start time
     /// @param duration Encrypted duration
@@ -155,22 +154,18 @@ library FHEPermissions {
         // User permissions
         FHE.allow(startTime, user);
         FHE.allow(duration, user);
-        
+
         // Contract permissions
         FHE.allowThis(startTime);
         FHE.allowThis(duration);
         FHE.allowThis(currentTime);
     }
-    
+
     /// @notice Grant permissions for boolean operations
     /// @param boolValue Encrypted boolean value
     /// @param user Address of the user
     /// @param contractAddr Address of the contract
-    function grantBoolPermissions(
-        ebool boolValue,
-        address user,
-        address contractAddr
-    ) internal {
+    function grantBoolPermissions(ebool boolValue, address user, address contractAddr) internal {
         FHE.allow(boolValue, user);
         FHE.allowThis(boolValue);
     }

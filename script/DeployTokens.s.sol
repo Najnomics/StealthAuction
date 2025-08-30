@@ -18,7 +18,7 @@ contract DeployTokensScript is Script, Constants {
 
         // Deploy auction token (what's being sold in auctions)
         auctionToken = new AuctionToken("Auction Token", "AUCT", 18);
-        
+
         // Deploy base token (what bidders pay with - like USDC/ETH)
         baseToken = new AuctionToken("Base Token", "BASE", 18);
 
@@ -38,7 +38,7 @@ contract DeployTokensScript is Script, Constants {
     /// @notice Deploy tokens and return sorted pair
     function runSorted() public returns (AuctionToken token0, AuctionToken token1) {
         (AuctionToken auctionToken, AuctionToken baseToken) = run();
-        
+
         // Sort tokens for Uniswap v4 compatibility
         if (address(auctionToken) < address(baseToken)) {
             token0 = auctionToken;

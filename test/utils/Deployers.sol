@@ -61,7 +61,7 @@ contract Deployers is Test {
     {
         AuctionToken tokenA = new AuctionToken("Token A", "TOKENA", 18);
         AuctionToken tokenB = new AuctionToken("Token B", "TOKENB", 18);
-        
+
         // Ensure tokenA < tokenB for proper ordering
         if (address(tokenA) > address(tokenB)) {
             (tokenA, tokenB) = (tokenB, tokenA);
@@ -84,19 +84,19 @@ contract Deployers is Test {
         returns (PoolKey memory key, PoolId id)
     {
         (key, id) = createPool(hooks, fee, sqrtPriceX96, initData);
-        
+
         // Add initial liquidity
         AuctionToken token0 = AuctionToken(Currency.unwrap(key.currency0));
         AuctionToken token1 = AuctionToken(Currency.unwrap(key.currency1));
-        
+
         // Mint tokens for liquidity provision
         token0.mint(address(this), 1000000 ether);
         token1.mint(address(this), 1000000 ether);
-        
+
         // Approve tokens for the modify liquidity router
         token0.approve(address(modifyLiquidityRouter), type(uint256).max);
         token1.approve(address(modifyLiquidityRouter), type(uint256).max);
-        
+
         // Add liquidity
         modifyLiquidityRouter.modifyLiquidity(
             key,
@@ -113,21 +113,15 @@ contract Deployers is Test {
     function deployTokens(uint8 count, uint256 totalSupply) internal returns (AuctionToken[] memory tokens) {
         tokens = new AuctionToken[](count);
         for (uint8 i = 0; i < count; i++) {
-            tokens[i] = new AuctionToken(
-                string(abi.encodePacked("Token ", i)),
-                string(abi.encodePacked("TOK", i)),
-                18
-            );
+            tokens[i] = new AuctionToken(string(abi.encodePacked("Token ", i)), string(abi.encodePacked("TOK", i)), 18);
             tokens[i].mint(address(this), totalSupply);
         }
     }
 
-    function deployAndMintAuctionToken(
-        string memory name,
-        string memory symbol,
-        address to,
-        uint256 amount
-    ) internal returns (AuctionToken token) {
+    function deployAndMintAuctionToken(string memory name, string memory symbol, address to, uint256 amount)
+        internal
+        returns (AuctionToken token)
+    {
         token = new AuctionToken(name, symbol, 18);
         token.mint(to, amount);
     }
@@ -150,7 +144,7 @@ contract Deployers is Test {
         returns (PoolKey memory key)
     {
         (AuctionToken token0, AuctionToken token1) = sortTokens(tokenA, tokenB);
-        
+
         key = PoolKey({
             currency0: Currency.wrap(address(token0)),
             currency1: Currency.wrap(address(token1)),

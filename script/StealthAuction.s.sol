@@ -21,18 +21,14 @@ contract StealthAuctionScript is Script, Constants {
         // Hook contracts must have specific flags encoded in the address
         // Complete hook coverage: afterInitialize, beforeAddLiquidity, beforeSwap, afterSwap
         uint160 flags = uint160(
-            Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | 
-            Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+            Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_INITIALIZE_FLAG
+                | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
         );
 
         // Mine a salt that will produce a hook address with the correct flags
         bytes memory constructorArgs = abi.encode(POOLMANAGER);
-        (address hookAddress, bytes32 salt) = HookMiner.find(
-            CREATE2_DEPLOYER,
-            flags,
-            type(StealthAuction).creationCode,
-            constructorArgs
-        );
+        (address hookAddress, bytes32 salt) =
+            HookMiner.find(CREATE2_DEPLOYER, flags, type(StealthAuction).creationCode, constructorArgs);
 
         console.log("Found hook address:", hookAddress);
         console.log("Salt:", vm.toString(salt));
@@ -50,7 +46,7 @@ contract StealthAuctionScript is Script, Constants {
         console.log("  beforeAddLiquidity:", auctionHook.getHookPermissions().beforeAddLiquidity);
         console.log("  beforeSwap:", auctionHook.getHookPermissions().beforeSwap);
         console.log("  afterSwap:", auctionHook.getHookPermissions().afterSwap);
-        
+
         return auctionHook;
     }
 }

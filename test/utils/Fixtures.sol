@@ -36,13 +36,10 @@ contract Fixtures is Deployers, DeployPermit2 {
         manager.initialize(key, SQRT_PRICE_1_1);
     }
 
-    function addLiquidity(
-        PoolKey memory key,
-        uint256 amount0,
-        uint256 amount1,
-        int24 tickLower,
-        int24 tickUpper
-    ) internal returns (uint256 tokenId) {
+    function addLiquidity(PoolKey memory key, uint256 amount0, uint256 amount1, int24 tickLower, int24 tickUpper)
+        internal
+        returns (uint256 tokenId)
+    {
         // Mint tokens to posm
         require(IERC20(Currency.unwrap(key.currency0)).transfer(address(posm), amount0), "Transfer failed");
         require(IERC20(Currency.unwrap(key.currency1)).transfer(address(posm), amount1), "Transfer failed");
@@ -51,20 +48,18 @@ contract Fixtures is Deployers, DeployPermit2 {
         return uint256(keccak256(abi.encode(address(this), tickLower, tickUpper)));
     }
 
-    function removeLiquidity(
-        PoolKey memory key,
-        uint256 tokenId,
-        uint128 liquidity
-    ) internal returns (BalanceDelta delta) {
+    function removeLiquidity(PoolKey memory key, uint256 tokenId, uint128 liquidity)
+        internal
+        returns (BalanceDelta delta)
+    {
         // Remove liquidity logic
         return BalanceDelta.wrap(0);
     }
 
-    function performSwap(
-        PoolKey memory key,
-        bool zeroForOne,
-        int256 amountSpecified
-    ) internal returns (BalanceDelta delta) {
+    function performSwap(PoolKey memory key, bool zeroForOne, int256 amountSpecified)
+        internal
+        returns (BalanceDelta delta)
+    {
         // Simplified swap - needs proper implementation
         return BalanceDelta.wrap(0);
     }

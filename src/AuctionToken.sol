@@ -8,7 +8,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 /// @notice ERC20 token for testing auction functionality
 /// @dev Simple mintable ERC20 for use in auction testing and demonstrations
 contract AuctionToken is ERC20, Ownable {
-    
     uint8 private _decimals;
 
     /// @notice Events
@@ -17,13 +16,9 @@ contract AuctionToken is ERC20, Ownable {
 
     /// @notice Constructor
     /// @param name Token name
-    /// @param symbol Token symbol  
+    /// @param symbol Token symbol
     /// @param decimals_ Token decimals
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint8 decimals_
-    ) ERC20(name, symbol) Ownable(msg.sender) {
+    constructor(string memory name, string memory symbol, uint8 decimals_) ERC20(name, symbol) Ownable(msg.sender) {
         _decimals = decimals_;
     }
 
@@ -61,7 +56,7 @@ contract AuctionToken is ERC20, Ownable {
     /// @param amounts Array of amounts to mint
     function batchMint(address[] calldata recipients, uint256[] calldata amounts) external onlyOwner {
         require(recipients.length == amounts.length, "AuctionToken: Arrays length mismatch");
-        
+
         for (uint256 i = 0; i < recipients.length; i++) {
             _mint(recipients[i], amounts[i]);
             emit TokenMinted(recipients[i], amounts[i]);

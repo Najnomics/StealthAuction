@@ -21,7 +21,7 @@ import {AuctionToken} from "../src/AuctionToken.sol";
 import {InEuint128, InEuint64} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 import {CoFheTest} from "@fhenixprotocol/cofhe-mock-contracts/CoFheTest.sol";
 
-/// @title StealthAuction Test Suite  
+/// @title StealthAuction Test Suite
 /// @notice Comprehensive integration tests for stealth auction functionality
 contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     using PoolIdLibrary for PoolKey;
@@ -61,8 +61,8 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         // Deploy the hook to an address with the correct flags (all 4 hooks we use)
         address flags = address(
             uint160(
-                Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | 
-                Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+                Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_INITIALIZE_FLAG
+                    | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
             ) ^ (0x4444 << 144) // Namespace to avoid collisions
         );
         bytes memory constructorArgs = abi.encode(manager);
@@ -96,7 +96,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         auctionToken.mint(seller, AUCTION_SUPPLY * 10);
         token0.mint(address(this), 1000000 ether);
         token1.mint(address(this), 1000000 ether);
-        
+
         // Setup bidder balances
         vm.deal(bidder1, 100 ether);
         vm.deal(bidder2, 100 ether);
@@ -136,7 +136,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         vm.stopPrank();
 
         assertEq(auctionId, 1, "First auction should have ID 1");
-        
+
         (
             address auctionSeller,
             address auctionTokenAddr,
@@ -248,7 +248,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
 
         vm.startPrank(bidder1);
         InEuint128 memory bid = createInEuint128(uint128(8 ether), bidder1);
-        
+
         vm.expectRevert(StealthAuction.AuctionNotFound.selector);
         hook.submitEncryptedBid(invalidAuctionId, bid);
         vm.stopPrank();
@@ -263,11 +263,11 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
 
         // Check initial price (placeholder implementation returns 0)
         uint256 initialPrice = hook.getCurrentPrice(auctionId);
-        
+
         // Advance time to middle of auction
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
         uint256 midPrice = hook.getCurrentPrice(auctionId);
-        
+
         // Advance time to end of auction
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
         uint256 finalPrice = hook.getCurrentPrice(auctionId);
@@ -370,13 +370,13 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
 
     function test_HookPermissions() public {
         Hooks.Permissions memory permissions = hook.getHookPermissions();
-        
+
         // Test our 4 enabled hooks
         assertTrue(permissions.afterInitialize, "Should have afterInitialize permission");
         assertTrue(permissions.beforeAddLiquidity, "Should have beforeAddLiquidity permission");
         assertTrue(permissions.beforeSwap, "Should have beforeSwap permission");
         assertTrue(permissions.afterSwap, "Should have afterSwap permission");
-        
+
         // Test disabled hooks
         assertFalse(permissions.beforeInitialize, "Should not have beforeInitialize permission");
         assertFalse(permissions.afterAddLiquidity, "Should not have afterAddLiquidity permission");
@@ -387,14 +387,14 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_BeforeSwapHook() public {
         // Note: This tests the hook callback but doesn't test swap functionality
         // as that would require more complex pool setup
-        
+
         // The hook should be deployed with all 4 flags we use
         uint160 actualFlags = uint160(hookAddr) & Hooks.ALL_HOOK_MASK;
         uint160 expectedFlags = uint160(
-            Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | 
-            Hooks.AFTER_INITIALIZE_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+            Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_INITIALIZE_FLAG
+                | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
         );
-        
+
         assertEq(actualFlags, expectedFlags, "Hook should have correct flags for all 4 enabled hooks");
     }
 
@@ -405,23 +405,23 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_FullAuctionLifecycle() public {
         // 1. Create auction
         uint256 auctionId = _createTestAuction();
-        
+
         // 2. Submit multiple bids
         vm.startPrank(bidder1);
         hook.submitEncryptedBid(auctionId, createInEuint128(uint128(8 ether), bidder1));
         vm.stopPrank();
-        
+
         vm.startPrank(bidder2);
         hook.submitEncryptedBid(auctionId, createInEuint128(uint128(6 ether), bidder2));
         vm.stopPrank();
-        
+
         vm.startPrank(bidder3);
         hook.submitEncryptedBid(auctionId, createInEuint128(uint128(9 ether), bidder3));
         vm.stopPrank();
-        
+
         // 3. Advance time
         vm.warp(block.timestamp + AUCTION_DURATION / 2);
-        
+
         // 4. Check auction status
         (
             address auctionSeller,
@@ -431,22 +431,22 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
             uint256 bidderCount,
             uint256 queueLength
         ) = hook.getAuctionInfo(auctionId);
-        
+
         assertEq(auctionSeller, seller);
         assertEq(auctionTokenAddr, address(auctionToken));
         assertTrue(isActive);
         assertFalse(revealed);
         assertEq(bidderCount, 3);
         assertEq(queueLength, 3);
-        
+
         // 5. Settle auction
         hook.settleAuction(auctionId);
-        
+
         // 6. Reveal parameters
         vm.startPrank(seller);
         hook.revealParameters(auctionId);
         vm.stopPrank();
-        
+
         // 7. Final state check
         (,, bool finalActive, bool finalRevealed,,) = hook.getAuctionInfo(auctionId);
         assertTrue(finalActive, "Placeholder keeps active");
@@ -460,16 +460,16 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_ManyBiddersOneAuction() public {
         uint256 auctionId = _createTestAuction();
         uint256 numBidders = 10;
-        
+
         for (uint256 i = 0; i < numBidders; i++) {
             address bidder = address(uint160(0x1000 + i));
-            
+
             vm.startPrank(bidder);
             InEuint128 memory bid = createInEuint128(uint128((i + 1) * 1 ether), bidder);
             hook.submitEncryptedBid(auctionId, bid);
             vm.stopPrank();
         }
-        
+
         (,,,, uint256 bidderCount, uint256 queueLength) = hook.getAuctionInfo(auctionId);
         assertEq(bidderCount, numBidders, "Should have all bidders");
         assertEq(queueLength, numBidders, "Queue should have all bids");
@@ -478,7 +478,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_ManyConcurrentAuctions() public {
         uint256 numAuctions = 5;
         uint256[] memory auctionIds = new uint256[](numAuctions);
-        
+
         vm.startPrank(seller);
         for (uint256 i = 0; i < numAuctions; i++) {
             InEuint128 memory encStartPrice = createInEuint128(uint128(START_PRICE + i * 1 ether), seller);
@@ -497,7 +497,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
             );
         }
         vm.stopPrank();
-        
+
         // Submit bids to each auction
         for (uint256 i = 0; i < numAuctions; i++) {
             vm.startPrank(bidder1);
@@ -505,7 +505,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
             hook.submitEncryptedBid(auctionIds[i], bid);
             vm.stopPrank();
         }
-        
+
         // Verify all auctions
         for (uint256 i = 0; i < numAuctions; i++) {
             (
@@ -516,7 +516,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
                 uint256 bidderCount,
                 uint256 queueLength
             ) = hook.getAuctionInfo(auctionIds[i]);
-            
+
             assertEq(auctionSeller, seller);
             assertEq(auctionTokenAddr, address(auctionToken));
             assertTrue(isActive);
@@ -554,39 +554,27 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
 
 // HookMiner utility for finding hook addresses
 library HookMiner {
-    function find(
-        address deployer,
-        uint160 flags,
-        bytes memory creationCode,
-        bytes memory constructorArgs
-    ) internal pure returns (address, bytes32) {
+    function find(address deployer, uint160 flags, bytes memory creationCode, bytes memory constructorArgs)
+        internal
+        pure
+        returns (address, bytes32)
+    {
         bytes memory bytecode = abi.encodePacked(creationCode, constructorArgs);
-        
+
         for (uint256 i = 0; i < 100000; i++) {
             bytes32 salt = bytes32(i);
             address hookAddress = computeAddress(deployer, salt, bytecode);
-            
+
             if (uint160(hookAddress) & ~flags == 0) {
                 return (hookAddress, salt);
             }
         }
-        
+
         revert("HookMiner: could not find hook address");
     }
-    
-    function computeAddress(
-        address deployer,
-        bytes32 salt,
-        bytes memory bytecode
-    ) internal pure returns (address) {
-        bytes32 hash = keccak256(
-            abi.encodePacked(
-                bytes1(0xff),
-                deployer,
-                salt,
-                keccak256(bytecode)
-            )
-        );
+
+    function computeAddress(address deployer, bytes32 salt, bytes memory bytecode) internal pure returns (address) {
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), deployer, salt, keccak256(bytecode)));
         return address(uint160(uint256(hash)));
     }
 }
