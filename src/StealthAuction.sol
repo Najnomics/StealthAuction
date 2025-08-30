@@ -2,10 +2,10 @@
 pragma solidity ^0.8.26;
 
 /**
- * @title EncryptedDutchAuction
- * @dev A Uniswap V4 hook that enables confidential Dutch auctions using Fully Homomorphic Encryption (FHE)
+ * @title StealthAuction
+ * @dev A Uniswap V4 hook that enables confidential stealth auctions using Fully Homomorphic Encryption (FHE)
  * 
- * This contract allows sellers to create Dutch auctions with complete privacy - encrypting starting price,
+ * This contract allows sellers to create stealth auctions with complete privacy - encrypting starting price,
  * ending price, duration, and current progress. Bidders submit encrypted bids that are validated privately
  * against the hidden current price, preventing front-running, sniping, and coordination attacks.
  * 
@@ -40,9 +40,9 @@ import {AuctionLibrary} from "./lib/AuctionLibrary.sol";
 import {BidQueue} from "./lib/BidQueue.sol";
 import {FHEPermissions} from "./lib/FHEPermissions.sol";
 
-/// @title Encrypted Dutch Auction Hook
-/// @notice Enables confidential Dutch auctions on Uniswap v4
-contract EncryptedDutchAuction is BaseHook, ReentrancyGuardTransient {
+/// @title Stealth Auction Hook
+/// @notice Enables confidential stealth auctions on Uniswap v4
+contract StealthAuction is BaseHook, ReentrancyGuardTransient {
     using SafeERC20 for IERC20;
     using PoolIdLibrary for PoolKey;
     

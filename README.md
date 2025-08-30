@@ -1,4 +1,4 @@
-# **Encrypted Dutch Auction Hook** 🔐
+# **StealthAuction Hook** 🔐
 
 > **Production-Ready Uniswap v4 Hook with Fhenix FHE Integration**
 
@@ -119,7 +119,7 @@ function _beforeSwap(...) internal override onlyByManager returns (...) {
 ┌─────────────────────────────────────────────────────────────┐
 │                 ENCRYPTED DUTCH AUCTION                     │
 ├─────────────────────────────────────────────────────────────┤
-│  EncryptedDutchAuction.sol                                 │
+│  StealthAuction.sol                                        │
 │  ├── createEncryptedAuction()    # Private parameters      │
 │  ├── submitEncryptedBid()        # Hidden bid amounts      │
 │  ├── settleAuction()             # Homomorphic settlement  │
@@ -349,19 +349,19 @@ graph LR
 ```
 StealthAuction/
 ├── src/                              # Core smart contracts
-│   ├── EncryptedDutchAuction.sol    # Main hook implementation
+│   ├── StealthAuction.sol           # Main hook implementation
 │   ├── lib/
 │   │   ├── AuctionLibrary.sol       # FHE price calculations
 │   │   └── BidQueue.sol             # Encrypted bid management
 │   └── AuctionToken.sol             # Test ERC20 token
 ├── test/                            # Comprehensive test suite
-│   ├── EncryptedDutchAuction.t.sol  # Main contract tests
+│   ├── StealthAuction.t.sol         # Main contract tests
 │   ├── AuctionLibrary.t.sol         # Library unit tests
 │   ├── BidQueue.t.sol               # Queue functionality tests
 │   ├── integration/                 # End-to-end tests
 │   └── utils/                       # Test utilities
 ├── script/                          # Deployment & demo scripts
-│   ├── EncryptedDutchAuction.s.sol  # Hook deployment
+│   ├── StealthAuction.s.sol         # Hook deployment
 │   ├── DeployTokens.s.sol           # Token deployment
 │   ├── AuctionDemo.s.sol            # Live demonstration
 │   ├── Anvil.s.sol                  # Local testing
@@ -418,7 +418,7 @@ forge test
 forge test -vvv
 
 # Run specific test file
-forge test --match-contract EncryptedDutchAuctionTest
+forge test --match-contract StealthAuctionTest
 
 # Run with gas reporting
 forge test --gas-report
@@ -442,7 +442,7 @@ forge build --sizes
 anvil  # Start local blockchain
 
 # Deploy the complete hook system
-forge script script/EncryptedDutchAuction.s.sol --fork-url http://localhost:8545 --broadcast
+forge script script/StealthAuction.s.sol --fork-url http://localhost:8545 --broadcast
 
 # Verify hook permissions (should show 4/4 enabled)
 # - afterInitialize: true
@@ -488,7 +488,7 @@ forge script script/TestDeployment.s.sol \
 ### **Testnet Deployment**
 ```bash
 # Deploy to Fhenix Helium testnet
-forge script script/EncryptedDutchAuction.s.sol \
+forge script script/StealthAuction.s.sol \
   --rpc-url $FHENIX_RPC \
   --private-key $PRIVATE_KEY \
   --broadcast \
@@ -505,7 +505,7 @@ forge script script/DeployTokens.s.sol \
 | Component | Address | Status |
 |-----------|---------|--------|
 | **PoolManager** | `0x0165878A594ca255338adfa4d48449f69242Eb8F` | ✅ Active |
-| **EncryptedDutchAuction** | `0x781D0CE33a3E397A523a47Ef2936352b8Ba4C080` | ✅ Active |
+| **StealthAuction**        | `0x781D0CE33a3E397A523a47Ef2936352b8Ba4C080` | ✅ Active |
 | **AuctionToken** | `0x5FbDB2315678afecb367f032d93F642f64180aa3` | ✅ Active |
 | **BaseToken** | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` | ✅ Active |
 

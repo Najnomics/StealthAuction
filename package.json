@@ -1,7 +1,7 @@
 {
-  "name": "encrypted-dutch-auction-hook",
+  "name": "stealth-auction-hook",
   "version": "1.0.0",
-  "description": "Encrypted Dutch Auction Hook for Uniswap v4 - confidential auctions with FHE",
+  "description": "StealthAuction Hook for Uniswap v4 - confidential stealth auctions with FHE",
   "scripts": {
     "test": "forge test --via-ir",
     "build": "forge build --via-ir",
@@ -23,7 +23,7 @@
     "trading",
     "hooks",
     "auction",
-    "dutch-auction"
+    "stealth-auction"
   ],
   "repository": {
     "type": "git",

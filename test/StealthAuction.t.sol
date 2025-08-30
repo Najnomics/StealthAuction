@@ -14,21 +14,21 @@ import {CurrencyLibrary, Currency} from "@uniswap/v4-core/src/types/Currency.sol
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
 
 import {Fixtures} from "./utils/Fixtures.sol";
-import {EncryptedDutchAuction} from "../src/EncryptedDutchAuction.sol";
+import {StealthAuction} from "../src/StealthAuction.sol";
 import {AuctionToken} from "../src/AuctionToken.sol";
 
 // FHE Imports
 import {FHE, InEuint128, InEuint64, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 import {CoFheTest} from "@fhenixprotocol/cofhe-mock-contracts/CoFheTest.sol";
 
-/// @title EncryptedDutchAuction Test Suite  
-/// @notice Comprehensive integration tests for encrypted Dutch auction functionality
-contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
+/// @title StealthAuction Test Suite  
+/// @notice Comprehensive integration tests for stealth auction functionality
+contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
     using StateLibrary for IPoolManager;
 
-    EncryptedDutchAuction hook;
+    StealthAuction hook;
     address hookAddr;
     PoolId poolId;
 
@@ -66,8 +66,8 @@ contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
             ) ^ (0x4444 << 144) // Namespace to avoid collisions
         );
         bytes memory constructorArgs = abi.encode(manager);
-        deployCodeTo("EncryptedDutchAuction.sol:EncryptedDutchAuction", constructorArgs, flags);
-        hook = EncryptedDutchAuction(flags);
+        deployCodeTo("StealthAuction.sol:StealthAuction", constructorArgs, flags);
+        hook = StealthAuction(flags);
         hookAddr = address(hook);
 
         // Create tokens
@@ -237,7 +237,7 @@ contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
         hook.submitEncryptedBid(auctionId, bid1);
 
         InEuint128 memory bid2 = createInEuint128(uint128(9 ether), bidder1);
-        vm.expectRevert(EncryptedDutchAuction.BidAlreadyExists.selector);
+        vm.expectRevert(StealthAuction.BidAlreadyExists.selector);
         hook.submitEncryptedBid(auctionId, bid2);
 
         vm.stopPrank();
@@ -249,7 +249,7 @@ contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
         vm.startPrank(bidder1);
         InEuint128 memory bid = createInEuint128(uint128(8 ether), bidder1);
         
-        vm.expectRevert(EncryptedDutchAuction.AuctionNotFound.selector);
+        vm.expectRevert(StealthAuction.AuctionNotFound.selector);
         hook.submitEncryptedBid(invalidAuctionId, bid);
         vm.stopPrank();
     }
@@ -359,7 +359,7 @@ contract EncryptedDutchAuctionTest is Test, Fixtures, CoFheTest {
         uint256 auctionId = _createTestAuction();
 
         vm.startPrank(bidder1);
-        vm.expectRevert(EncryptedDutchAuction.UnauthorizedSeller.selector);
+        vm.expectRevert(StealthAuction.UnauthorizedSeller.selector);
         hook.revealParameters(auctionId);
         vm.stopPrank();
     }

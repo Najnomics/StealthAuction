@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import "forge-std/Script.sol";
-import {EncryptedDutchAuctionScript} from "./EncryptedDutchAuction.s.sol";
+import {StealthAuctionScript} from "./StealthAuction.s.sol";
 import {DeployTokensScript} from "./DeployTokens.s.sol";
 import {CreatePoolAndMintLiquidityScript} from "./01_CreatePoolAndMintLiquidity.s.sol";
 import {AuctionDemoScript} from "./AuctionDemo.s.sol";
@@ -22,8 +22,8 @@ contract AnvilScript is Script {
         tokenScript.run();
 
         // Step 2: Deploy hook
-        console.log("\n2. Deploying EncryptedDutchAuction hook...");
-        EncryptedDutchAuctionScript hookScript = new EncryptedDutchAuctionScript();
+        console.log("\n2. Deploying StealthAuction hook...");
+        StealthAuctionScript hookScript = new StealthAuctionScript();
         hookScript.run();
 
         // Step 3: Create pool and add liquidity

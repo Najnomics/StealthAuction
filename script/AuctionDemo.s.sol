@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import "forge-std/Script.sol";
 import {Constants} from "./base/Constants.sol";
 import {Config} from "./base/Config.sol";
-import {EncryptedDutchAuction} from "../src/EncryptedDutchAuction.sol";
+import {StealthAuction} from "../src/StealthAuction.sol";
 import {AuctionToken} from "../src/AuctionToken.sol";
 import {FHE, InEuint128, InEuint64} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
@@ -12,16 +12,16 @@ import {PoolId} from "@uniswap/v4-core/src/types/PoolId.sol";
 // FHE Imports
 import {CoFheTest} from "@fhenixprotocol/cofhe-mock-contracts/CoFheTest.sol";
 
-/// @notice Demonstrates creating and interacting with encrypted auctions
+/// @notice Demonstrates creating and interacting with stealth auctions
 contract AuctionDemoScript is Script, Constants, Config, CoFheTest {
-    EncryptedDutchAuction auction;
+    StealthAuction auction;
 
     function setUp() public {
-        auction = EncryptedDutchAuction(address(hookContract));
+        auction = StealthAuction(address(hookContract));
     }
 
     function run() public {
-        console.log("=== Encrypted Dutch Auction Demo ===");
+        console.log("=== StealthAuction Demo ===");
         console.log("Hook address:", address(auction));
         console.log("Auction token:", address(auctionToken));
         console.log("Seller:", msg.sender);

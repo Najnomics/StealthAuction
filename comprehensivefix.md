@@ -143,7 +143,7 @@ library FHEPermissions {
 
 ### **1.2 Fix createEncryptedAuction Function**
 
-**Location**: `src/EncryptedDutchAuction.sol` - Replace existing function
+**Location**: `src/StealthAuction.sol` - Replace existing function
 
 ```solidity
 function createEncryptedAuction(
@@ -210,7 +210,7 @@ function createEncryptedAuction(
 
 ### **1.3 Fix submitEncryptedBid Function**
 
-**Location**: `src/EncryptedDutchAuction.sol` - Replace existing function
+**Location**: `src/StealthAuction.sol` - Replace existing function
 
 ```solidity
 function submitEncryptedBid(
@@ -285,7 +285,7 @@ function submitEncryptedBid(
 
 ### **1.4 Fix Settlement Functions**
 
-**Location**: `src/EncryptedDutchAuction.sol` - Replace existing settlement functions
+**Location**: `src/StealthAuction.sol` - Replace existing settlement functions
 
 ```solidity
 function settleAuction(uint256 auctionId) external nonReentrant {
@@ -364,7 +364,7 @@ function settleBidWithFHE(uint256 auctionId, address bidder) internal {
 
 ### **2.1 Update getHookPermissions**
 
-**Location**: `src/EncryptedDutchAuction.sol` - Replace existing function
+**Location**: `src/StealthAuction.sol` - Replace existing function
 
 ```solidity
 function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
@@ -599,7 +599,7 @@ event PostSwapAuctionUpdate(PoolId indexed poolId, uint256 affectedAuctions);
 
 ### **3.1 Complete beforeSwap Implementation**
 
-**Location**: `src/EncryptedDutchAuction.sol` - Replace existing function
+**Location**: `src/StealthAuction.sol` - Replace existing function
 
 ```solidity
 function beforeSwap(

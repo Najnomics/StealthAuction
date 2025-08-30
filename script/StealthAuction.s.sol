@@ -6,15 +6,15 @@ import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 
 import {Constants} from "./base/Constants.sol";
-import {EncryptedDutchAuction} from "../src/EncryptedDutchAuction.sol";
+import {StealthAuction} from "../src/StealthAuction.sol";
 import {HookMiner} from "v4-periphery/src/utils/HookMiner.sol";
 
-/// @notice Mines the address and deploys the EncryptedDutchAuction.sol Hook contract
-contract EncryptedDutchAuctionScript is Script, Constants {
+/// @notice Mines the address and deploys the StealthAuction.sol Hook contract
+contract StealthAuctionScript is Script, Constants {
     function setUp() public {}
 
-    function run() public returns (EncryptedDutchAuction auctionHook) {
-        console.log("Deploying EncryptedDutchAuction Hook...");
+    function run() public returns (StealthAuction auctionHook) {
+        console.log("Deploying StealthAuction Hook...");
         console.log("Chain ID:", block.chainid);
         console.log("PoolManager:", address(POOLMANAGER));
 
@@ -30,7 +30,7 @@ contract EncryptedDutchAuctionScript is Script, Constants {
         (address hookAddress, bytes32 salt) = HookMiner.find(
             CREATE2_DEPLOYER,
             flags,
-            type(EncryptedDutchAuction).creationCode,
+            type(StealthAuction).creationCode,
             constructorArgs
         );
 
@@ -39,12 +39,12 @@ contract EncryptedDutchAuctionScript is Script, Constants {
 
         // Deploy the hook using CREATE2
         vm.startBroadcast();
-        auctionHook = new EncryptedDutchAuction{salt: salt}(IPoolManager(POOLMANAGER));
+        auctionHook = new StealthAuction{salt: salt}(IPoolManager(POOLMANAGER));
         vm.stopBroadcast();
 
-        require(address(auctionHook) == hookAddress, "EncryptedDutchAuctionScript: hook address mismatch");
+        require(address(auctionHook) == hookAddress, "StealthAuctionScript: hook address mismatch");
 
-        console.log("EncryptedDutchAuction deployed at:", address(auctionHook));
+        console.log("StealthAuction deployed at:", address(auctionHook));
         console.log("Hook permissions:");
         console.log("  afterInitialize:", auctionHook.getHookPermissions().afterInitialize);
         console.log("  beforeAddLiquidity:", auctionHook.getHookPermissions().beforeAddLiquidity);
