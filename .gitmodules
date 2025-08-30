@@ -1,22 +1,4 @@
-[submodule "lib/forge-std"]
-	path = lib/forge-std
-	url = https://github.com/foundry-rs/forge-std
 
-[submodule "lib/v4-periphery"]
-	path = lib/v4-periphery
-	url = https://github.com/Uniswap/v4-periphery
-[submodule "lib/openzeppelin-contracts"]
-	path = lib/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "lib/cofhe-contracts"]
-	path = lib/cofhe-contracts
-	url = https://github.com/fhenixprotocol/cofhe-contracts
-[submodule "lib/cofhe-mock-contracts"]
-	path = lib/cofhe-mock-contracts
-	url = https://github.com/fhenixprotocol/cofhe-mock-contracts
-[submodule "lib/uniswap-solidity-hooks-template"]
-	path = lib/uniswap-solidity-hooks-template
-	url = https://github.com/OpenZeppelin/uniswap-solidity-hooks-template
 [submodule "context/cofhe-scaffold-eth"]
 	path = context/cofhe-scaffold-eth
 	url = https://github.com/FhenixProtocol/cofhe-scaffold-eth.git
