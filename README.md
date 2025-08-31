@@ -407,21 +407,76 @@ cp .env.example .env
 
 ---
 
+## **📋 Makefile Commands (Recommended)**
+
+We provide a comprehensive Makefile for streamlined development. Use these convenient shortcuts:
+
+### **Quick Start**
+```bash
+# Show all available commands
+make help
+
+# Install all dependencies
+make install
+
+# Start development environment (Anvil + deploy)
+make dev
+
+# Run all tests
+make test
+
+# Generate coverage report
+make coverage
+```
+
+### **Development Workflow**
+```bash
+make build              # Build all contracts
+make test               # Run all tests with summary  
+make test-verbose       # Run tests with detailed output
+make format             # Format all Solidity files
+make format-check       # Check code formatting (CI)
+make lint               # Run linter on contracts
+make clean              # Clean build artifacts
+```
+
+### **Deployment**
+```bash
+make start-anvil        # Start local blockchain
+make deploy-anvil       # Deploy complete system to Anvil
+make deploy-demo        # Run auction demo
+make stop-anvil         # Stop local blockchain
+```
+
+### **Advanced Commands**
+```bash
+make coverage           # Generate coverage report (fixes stack too deep)
+make gas-snapshot       # Create gas usage snapshot
+make ci-check           # Run all CI checks locally
+make debug-test TEST=testCreateAuction  # Debug specific test
+make status             # Show project status
+```
+
+---
+
 ## **🧪 Testing & Development**
 
 ### **Run All Tests**
+
+> 💡 **Tip**: Use `make test` for the most convenient experience, or use direct Foundry commands below:
+
 ```bash
 # Execute comprehensive test suite (62/62 tests passing)
-forge test
+forge test  # or: make test
 
-# Run with verbose output
-forge test -vvv
+# Run with verbose output  
+forge test -vvv  # or: make test-verbose
 
 # Run specific test file
-forge test --match-contract StealthAuctionTest
+forge test --match-contract StealthAuctionTest  # or: make test-specific FILE=StealthAuction
 
 # Run with gas reporting
-forge test --gas-report
+forge test --gas-report  # or: make test-gas
 ```
 
 ### **Build Contracts**
@@ -435,8 +490,8 @@ forge build --optimize
 # Check contract sizes
 forge build --sizes
 
-#Run coverage analysis 
-forge coverage --ir-minimum
+# Run coverage analysis (resolves stack too deep errors)
+forge coverage --ir-minimum  # or: make coverage
 ```
 
 ### **Deployment**
