@@ -434,6 +434,9 @@ forge build --optimize
 
 # Check contract sizes
 forge build --sizes
+
+#Run coverage analysis 
+forge coverage --ir-minimum
 ```
 
 ### **Deployment**
