@@ -12,6 +12,10 @@ import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
 import {CurrencyLibrary, Currency} from "@uniswap/v4-core/src/types/Currency.sol";
 import {StateLibrary} from "@uniswap/v4-core/src/libraries/StateLibrary.sol";
+import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
+import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/types/BeforeSwapDelta.sol";
+import {BalanceDelta} from "@uniswap/v4-core/src/types/BalanceDelta.sol";
+import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 
 import {Fixtures} from "./utils/Fixtures.sol";
 import {StealthAuction} from "../src/StealthAuction.sol";
@@ -548,6 +552,153 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
             DECAY_RATE
         );
 
+        vm.stopPrank();
+    }
+
+    // ============================================================================
+    //                         COVERAGE IMPROVEMENT TESTS  
+    // ============================================================================
+
+    function test_OnlyByManagerModifier() public {
+        // Test that onlyByManager modifier works correctly
+        address nonManager = makeAddr("nonManager");
+        
+        vm.startPrank(nonManager);
+        vm.expectRevert(); // Just expect any revert for now
+        
+        // Try to call afterInitialize from non-manager (should fail)
+        PoolKey memory testKey = PoolKey({
+            currency0: Currency.wrap(address(token0)),
+            currency1: Currency.wrap(address(token1)),
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: hook
+        });
+        
+        // This should revert because msg.sender is not the poolManager
+        hook.afterInitialize(address(this), testKey, 0, 0);
+        vm.stopPrank();
+    }
+
+    function test_GetCurrentPrice() public {
+        uint256 auctionId = _createTestAuction();
+        
+        // Test getCurrentPrice function (currently returns placeholder 0)
+        uint256 currentPrice = hook.getCurrentPrice(auctionId);
+        assertEq(currentPrice, 0, "getCurrentPrice should return 0 (placeholder)");
+        
+        // Test with non-existent auction ID
+        uint256 nonExistentId = 999;
+        uint256 priceForNonExistent = hook.getCurrentPrice(nonExistentId);
+        assertEq(priceForNonExistent, 0, "getCurrentPrice should return 0 for non-existent auction");
+    }
+
+    function test_IsAuctionActive() public {
+        uint256 auctionId = _createTestAuction();
+        
+        // Test isAuctionActive function (currently returns placeholder true)
+        bool isActive = hook.isAuctionActive(auctionId);
+        assertTrue(isActive, "isAuctionActive should return true (placeholder)");
+        
+        // Test with non-existent auction ID
+        uint256 nonExistentId = 999;
+        bool isActiveForNonExistent = hook.isAuctionActive(nonExistentId);
+        assertTrue(isActiveForNonExistent, "isAuctionActive should return true for non-existent auction (placeholder)");
+    }
+
+    function test_HookFunctionCoverage() public {
+        uint256 auctionId = _createTestAuction();
+        
+        // Test beforeSwap with hookData to trigger processAuctionSwap
+        bytes memory hookData = abi.encode(auctionId);
+        
+        SwapParams memory params = SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1e18,
+            sqrtPriceLimitX96: 0
+        });
+        
+        PoolKey memory testKey = PoolKey({
+            currency0: Currency.wrap(address(token0)),
+            currency1: Currency.wrap(address(token1)),
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: hook
+        });
+
+        vm.startPrank(address(manager));
+        (bytes4 selector, BeforeSwapDelta delta, uint24 lpFee) = hook.beforeSwap(
+            address(this), testKey, params, hookData
+        );
+        vm.stopPrank();
+        
+        assertEq(selector, BaseHook.beforeSwap.selector, "Should return correct selector");
+        assertEq(BeforeSwapDelta.unwrap(delta), 0, "Should return zero delta");
+    }
+
+    function test_AfterSwapHookCoverage() public {
+        uint256 auctionId = _createTestAuction();
+        
+        SwapParams memory params = SwapParams({
+            zeroForOne: true,
+            amountSpecified: -1e18,
+            sqrtPriceLimitX96: 0
+        });
+        
+        BalanceDelta delta = BalanceDelta.wrap(0);
+        
+        PoolKey memory testKey = PoolKey({
+            currency0: Currency.wrap(address(token0)),
+            currency1: Currency.wrap(address(token1)),
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: hook
+        });
+
+        vm.startPrank(address(manager));
+        (bytes4 selector, int128 hookDelta) = hook.afterSwap(
+            address(this), testKey, params, delta, ""
+        );
+        vm.stopPrank();
+        
+        assertEq(selector, BaseHook.afterSwap.selector, "Should return correct selector");
+        assertEq(hookDelta, 0, "Should return zero hook delta");
+    }
+
+    function test_BeforeAddLiquidityCoverage() public {
+        uint256 auctionId = _createTestAuction();
+        
+        ModifyLiquidityParams memory params = ModifyLiquidityParams({
+            tickLower: -60,
+            tickUpper: 60,
+            liquidityDelta: 1000e18,
+            salt: bytes32(0)
+        });
+
+        PoolKey memory testKey = PoolKey({
+            currency0: Currency.wrap(address(token0)),
+            currency1: Currency.wrap(address(token1)),
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: hook
+        });
+
+        vm.startPrank(address(manager));
+        bytes4 selector = hook.beforeAddLiquidity(address(this), testKey, params, "");
+        vm.stopPrank();
+        
+        assertEq(selector, BaseHook.beforeAddLiquidity.selector, "Should return correct selector");
+    }
+
+    function test_ErrorConditionCoverage() public {
+        // Test various error conditions to improve coverage
+        
+        // Test unauthorized reveal
+        uint256 auctionId = _createTestAuction();
+        
+        vm.startPrank(bidder1); // Not the seller
+        vm.expectRevert(StealthAuction.UnauthorizedSeller.selector);
+        hook.revealParameters(auctionId);
         vm.stopPrank();
     }
 }
