@@ -710,8 +710,8 @@ forge script script/Anvil.s.sol \
   --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
   --broadcast
 
-# 3. Verify deployment
-forge script script/TestDeployment.s.sol \
+# 3. Run demo
+forge script script/AuctionDemo.s.sol \
   --rpc-url http://localhost:8545 \
   --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
   --broadcast
@@ -747,7 +747,7 @@ forge script script/DeployTokens.s.sol \
 
 ### **Creating an Encrypted Auction**
 ```solidity
-import {EncryptedDutchAuction} from "./src/EncryptedDutchAuction.sol";
+import {StealthAuction} from "./src/StealthAuction.sol";
 import {FHE, InEuint128, InEuint64} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
 // Encrypt auction parameters
@@ -846,7 +846,7 @@ if (msg.sender == auctionCreator) {
 ### **Code Standards**
 - **Solidity Style**: Follow official guidelines
 - **Comments**: NatSpec for all public functions
-- **Testing**: 100% coverage requirement
+- **Testing**: Comprehensive test suite with 62 tests
 - **Gas Optimization**: Profile all changes
 
 ---
