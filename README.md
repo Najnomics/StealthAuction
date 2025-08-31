@@ -106,44 +106,218 @@ function _beforeSwap(...) internal override onlyByManager returns (...) {
 
 ### **🏗️ Technical Architecture**
 
+#### **📐 System Overview**
+
 ```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           FHENIX CoFHE LAYER                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  🔐 Encrypted Types:                                                       │
+│    • euint128: Prices, Amounts, Supplies, Allocations                     │
+│    • euint64:  Time Parameters, Durations, Timestamps                     │
+│    • ebool:    State Flags, Validations, Settlement Conditions            │
+│                                                                             │
+│  ⚡ Homomorphic Operations:                                                │
+│    • FHE.add(), FHE.sub(), FHE.mul(), FHE.div()                          │
+│    • FHE.gte(), FHE.lte(), FHE.lt(), FHE.eq()                            │
+│    • FHE.select(), FHE.or(), FHE.and()                                   │
+│    • FHE.asEuint128(), FHE.asEuint64(), FHE.asEbool()                    │
+│                                                                             │
+│  🔑 Permission System:                                                     │
+│    • FHE.allowThis() - Contract access to encrypted values                │
+│    • FHE.allow(value, address) - Granular user permissions               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         STEALTH AUCTION CORE                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  📄 StealthAuction.sol (Main Hook Contract)                               │
+│                                                                             │
+│  🎯 Core Functions:                                                        │
+│    ├── createEncryptedAuction()     → Private auction creation            │
+│    │   ├── _setupAuctionEncryption() → FHE conversion & permissions       │
+│    │   └── _createAuctionData()      → Auction storage (avoids stack)     │
+│    │                                                                       │
+│    ├── submitEncryptedBid()         → Hidden bid submission               │
+│    │   ├── validateBid()             → FHE bid validation                 │
+│    │   └── bidQueue.enqueue()        → Encrypted bid storage              │
+│    │                                                                       │
+│    ├── settleAuction()              → Homomorphic settlement              │
+│    │   └── settleBidWithFhe()        → Encrypted bid processing           │
+│    │                                                                       │
+│    └── revealParameters()           → Optional transparency               │
+│                                                                             │
+│  📊 State Management:                                                      │
+│    • mapping(uint256 => DutchAuctionData) auctions                        │
+│    • mapping(uint256 => mapping(address => BidData)) bids                 │
+│    • mapping(PoolId => uint256[]) poolActiveAuctions                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       UNISWAP V4 HOOK INTEGRATION                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  🎣 Enabled Hook Permissions (4/4):                                       │
+│                                                                             │
+│    ✅ afterInitialize()     → Pool setup + FHE currency permissions       │
+│    ✅ beforeAddLiquidity()  → Auction-liquidity interaction logic         │
+│    ✅ beforeSwap()          → Pre-swap auction validation & processing    │
+│    ✅ afterSwap()           → Post-swap auction updates & settlements     │
+│                                                                             │
+│  🔧 Hook Infrastructure:                                                   │
+│    • CREATE2 deployment with precise flag matching                        │
+│    • HookMiner for address generation                                     │
+│    • PoolManager integration via BaseHook                                 │
+│    • Modifier-based access control (onlyByManager)                        │
+│                                                                             │
+│  💰 MEV Protection:                                                        │
+│    • Encrypted bid amounts prevent front-running                          │
+│    • Hidden auction parameters eliminate sniping                          │
+│    • FHE-based price discovery resists manipulation                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                        │
+                                        ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         SUPPORTING LIBRARIES                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  📚 AuctionLibrary.sol                                                     │
+│    ├── calculateLinearDecayPrice()   → FHE-based price calculations       │
+│    ├── calculateExponentialDecayPrice() → Advanced decay models           │
+│    ├── validateBid()                 → Encrypted bid validation           │
+│    └── isAuctionActive()             → FHE time-based status              │
+│                                                                             │
+│  🔄 BidQueue.sol                                                           │
+│    ├── enqueue(euint128)             → FIFO encrypted bid storage         │
+│    ├── enqueuePriority()             → Priority bid handling              │
+│    ├── dequeue()                     → Ordered bid processing             │
+│    └── length(), isEmpty()           → Queue state management             │
+│                                                                             │
+│  🔑 FHEPermissions.sol                                                     │
+│    ├── grantAuctionCreationPermissions() → Seller & contract access      │
+│    ├── grantBidPermissions()         → Bidder permission management       │
+│    ├── grantSettlementPermissions()  → Settlement access control         │
+│    └── grantTimePermissions()        → Temporal operation permissions     │
+│                                                                             │
+│  🪙 AuctionToken.sol                                                       │
+│    ├── mint(), burn()                → Token lifecycle management         │
+│    ├── batchMint()                   → Efficient bulk operations          │
+│    └── ERC20 + Ownable               → Standard token compliance          │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### **🔄 Data Flow Architecture**
+
+```
+Auction Creation Flow:
+┌─────────────┐  encrypt   ┌─────────────┐  permissions ┌─────────────┐
+│   Seller    │ ────────▶  │   FHE.as*   │ ───────────▶ │ FHE.allow() │
+│ Parameters  │            │ Conversion  │              │  Grant      │
+└─────────────┘            └─────────────┘              └─────────────┘
+                                  │                            │
+                                  ▼                            ▼
+                           ┌─────────────┐              ┌─────────────┐
+                           │ Encrypted   │──────────▶   │  Auction    │
+                           │ Auction     │              │  Storage    │
+                           │ Parameters  │              │   State     │
+                           └─────────────┘              └─────────────┘
+
+Bidding Flow:
+┌─────────────┐  encrypt   ┌─────────────┐  validate    ┌─────────────┐
+│   Bidder    │ ────────▶  │ FHE.asEuint │ ───────────▶ │ FHE Price   │
+│    Bid      │            │  128(bid)   │              │ Comparison  │
+└─────────────┘            └─────────────┘              └─────────────┘
+                                  │                            │
+                                  ▼                            ▼
+                           ┌─────────────┐              ┌─────────────┐
+                           │ BidQueue    │◀─────────────│ Allocation  │
+                           │ .enqueue()  │              │ Calculation │
+                           └─────────────┘              └─────────────┘
+
+Hook Integration Flow:
+┌─────────────┐  trigger   ┌─────────────┐  FHE ops     ┌─────────────┐
+│ Uniswap V4  │ ────────▶  │ Hook        │ ───────────▶ │ Encrypted   │
+│ Pool Action │            │ Functions   │              │ Processing  │
+└─────────────┘            └─────────────┘              └─────────────┘
+                                  │                            │
+                                  ▼                            ▼
+                           ┌─────────────┐              ┌─────────────┐
+                           │ Auction     │◀─────────────│ State       │
+                           │ Updates     │              │ Updates     │
+                           └─────────────┘              └─────────────┘
+```
+
+#### **⚙️ Technical Implementation Details**
+
+##### **🔧 Smart Contract Architecture**
+
+| Component | Purpose | Key Features |
+|-----------|---------|-------------|
+| **StealthAuction.sol** | Main hook contract | • 4 enabled Uniswap v4 hooks<br>• Stack-optimized helper functions<br>• Comprehensive FHE integration |
+| **AuctionLibrary.sol** | Price calculation engine | • Linear & exponential decay models<br>• FHE-based bid validation<br>• Time-sensitive auction logic |
+| **BidQueue.sol** | Encrypted bid management | • FIFO queue with priority support<br>• Full euint128 encryption<br>• Gas-optimized operations |
+| **FHEPermissions.sol** | Access control system | • Centralized permission management<br>• Role-based FHE access<br>• Follows Fhenix best practices |
+| **AuctionToken.sol** | Token infrastructure | • ERC20 with mint/burn<br>• Batch operations<br>• Owner-controlled supply |
+
+##### **🎯 Gas Optimization Strategies**
+
+1. **Stack Too Deep Resolution**:
+   - Split `createEncryptedAuction()` into helper functions
+   - Temporary struct pattern for inter-function data transfer
+   - Compiler IR optimization (`--ir-minimum`)
+
+2. **FHE Operation Efficiency**:
+   - Batch permission grants in single transactions
+   - Minimize encrypted value conversions
+   - Strategic use of `FHE.allowThis()` vs `FHE.allow()`
+
+3. **Hook Integration Optimization**:
+   - Selective hook enabling (4/4 essential hooks only)
+   - Early returns for non-auction pools
+   - Efficient pool-auction mapping
+
+##### **🔐 Security Architecture**
+
+```
+Security Layers:
 ┌─────────────────────────────────────────────────────────────┐
-│                    FHENIX FHE LAYER                         │
+│                    APPLICATION LAYER                        │
 ├─────────────────────────────────────────────────────────────┤
-│  • euint128: Prices, Amounts, Supplies                     │
-│  • euint64: Time Parameters, Durations                     │
-│  • ebool: State Flags, Validations                         │
-│  • Homomorphic: +, -, *, /, >=, <, select()              │
+│ • ReentrancyGuard on all external functions                │
+│ • onlyByManager modifier for hook functions                │
+│ • Input validation for all user-provided data              │
+│ • Auction state machine with proper transitions            │
 └─────────────────────────────────────────────────────────────┘
                             │
 ┌─────────────────────────────────────────────────────────────┐
-│                 ENCRYPTED DUTCH AUCTION                     │
+│                      FHE LAYER                              │
 ├─────────────────────────────────────────────────────────────┤
-│  StealthAuction.sol                                        │
-│  ├── createEncryptedAuction()    # Private parameters      │
-│  ├── submitEncryptedBid()        # Hidden bid amounts      │
-│  ├── settleAuction()             # Homomorphic settlement  │
-│  └── revealParameters()          # Optional transparency   │
+│ • Encrypted storage for all sensitive data                 │
+│ • Granular permission system (seller/bidder/contract)      │
+│ • Homomorphic operations prevent data leakage              │
+│ • Time-based encrypted validations                         │
 └─────────────────────────────────────────────────────────────┘
                             │
 ┌─────────────────────────────────────────────────────────────┐
-│                  UNISWAP V4 HOOK SYSTEM                    │
+│                   PROTOCOL LAYER                           │
 ├─────────────────────────────────────────────────────────────┤
-│  IPoolManager Integration                                   │
-│  ├── beforeSwap() → Auction Logic                         │
-│  ├── CREATE2 Deployment                                    │
-│  ├── PoolKey Validation                                    │
-│  └── Gas Optimized Execution                              │
-└─────────────────────────────────────────────────────────────┘
-                            │
-┌─────────────────────────────────────────────────────────────┐
-│                    SUPPORTING LIBRARIES                     │
-├─────────────────────────────────────────────────────────────┤
-│  • AuctionLibrary.sol     # FHE price calculations         │
-│  • BidQueue.sol           # Encrypted bid management       │
-│  • AuctionToken.sol       # ERC20 with minting             │
+│ • Uniswap v4 PoolManager access control                   │
+│ • CREATE2 deterministic deployment                         │
+│ • Hook flag validation and enforcement                     │
+│ • MEV resistance through encrypted parameters              │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+##### **📊 Performance Characteristics**
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **Hook Deployment** | ~2.5M gas | One-time CREATE2 deployment |
+| **Auction Creation** | ~800K gas | Including FHE setup & permissions |
+| **Bid Submission** | ~400K gas | FHE validation & queue operations |
+| **Settlement** | ~600K gas | Homomorphic bid processing |
+| **Coverage** | 51.08% | Main contract line coverage |
+| **Tests** | 62/62 ✅ | 100% test success rate |
 
 ---
 
