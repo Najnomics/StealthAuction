@@ -102,7 +102,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
     mapping(uint256 => DutchAuctionData) public auctions;
     mapping(uint256 => mapping(address => BidData)) public bids;
     mapping(uint256 => address[]) public bidders;
-    
+
     /// @dev Temporary storage for auction creation (to avoid stack too deep errors)
     mapping(uint256 => TempEncryptionData) private _tempAuctionEncryption;
 
@@ -196,15 +196,15 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
     ) external nonReentrant returns (uint256 auctionId) {
         // ✅ Step 1: Import FHE.sol (done at file level)
         // ✅ Step 2: Call Operation & ✅ Step 3: Define Access
-        
+
         auctionId = nextAuctionId++;
-        
+
         // Create encrypted values and set permissions in helper function
         _setupAuctionEncryption(auctionId, startPrice, endPrice, duration, supply, token);
-        
+
         // Create auction data structure in helper function
         _createAuctionData(auctionId, poolId, token, decayRate);
-        
+
         // Track auction for user and pool
         userAuctions[msg.sender].push(auctionId);
         addAuctionToPool(poolId, auctionId);
@@ -245,14 +245,9 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
     }
 
     /// @dev Helper function to create auction data structure
-    function _createAuctionData(
-        uint256 auctionId,
-        PoolId poolId,
-        address token,
-        uint256 decayRate
-    ) private {
+    function _createAuctionData(uint256 auctionId, PoolId poolId, address token, uint256 decayRate) private {
         TempEncryptionData memory tempData = _tempAuctionEncryption[auctionId];
-        
+
         // Create time and status encrypted values
         euint64 encStartTime = FHE.asEuint64(block.timestamp);
         ebool encIsActive = FHE.asEbool(true);
@@ -263,7 +258,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
             encStartTime, tempData.duration, FHE.asEuint64(block.timestamp), msg.sender, address(this)
         );
         FHEPermissions.grantBoolPermissions(encIsActive, msg.sender, address(this));
-        
+
         // Grant permissions for zero amount (sold tracking)
         FHE.allowThis(encZeroAmount);
         FHE.allow(encZeroAmount, msg.sender);
