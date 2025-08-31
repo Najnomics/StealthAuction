@@ -91,9 +91,20 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
     //                           STORAGE
     // =============================================================
 
+    /// @dev Temporary struct to pass encrypted data between helper functions (avoids stack too deep)
+    struct TempEncryptionData {
+        euint128 startPrice;
+        euint128 endPrice;
+        euint64 duration;
+        euint128 supply;
+    }
+
     mapping(uint256 => DutchAuctionData) public auctions;
     mapping(uint256 => mapping(address => BidData)) public bids;
     mapping(uint256 => address[]) public bidders;
+    
+    /// @dev Temporary storage for auction creation (to avoid stack too deep errors)
+    mapping(uint256 => TempEncryptionData) private _tempAuctionEncryption;
 
     // Pool-auction coordination state
     mapping(PoolId => uint256) public poolAuctionCount;
@@ -184,49 +195,89 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         uint256 decayRate
     ) external nonReentrant returns (uint256 auctionId) {
         // ✅ Step 1: Import FHE.sol (done at file level)
+        // ✅ Step 2: Call Operation & ✅ Step 3: Define Access
+        
+        auctionId = nextAuctionId++;
+        
+        // Create encrypted values and set permissions in helper function
+        _setupAuctionEncryption(auctionId, startPrice, endPrice, duration, supply, token);
+        
+        // Create auction data structure in helper function
+        _createAuctionData(auctionId, poolId, token, decayRate);
+        
+        // Track auction for user and pool
+        userAuctions[msg.sender].push(auctionId);
+        addAuctionToPool(poolId, auctionId);
 
-        // ✅ Step 2: Call Operation
+        // For demo, we'll use a fixed amount. In production, this needs proper validation
+        // IERC20(token).safeTransferFrom(msg.sender, address(this), 1000 ether);
+
+        emit AuctionCreated(auctionId, msg.sender, token, block.timestamp);
+    }
+
+    /// @dev Helper function to handle FHE encryption and permissions setup
+    function _setupAuctionEncryption(
+        uint256 auctionId,
+        InEuint128 calldata startPrice,
+        InEuint128 calldata endPrice,
+        InEuint64 calldata duration,
+        InEuint128 calldata supply,
+        address token
+    ) private {
+        // Convert to encrypted values
         euint128 encStartPrice = FHE.asEuint128(startPrice);
         euint128 encEndPrice = FHE.asEuint128(endPrice);
         euint64 encDuration = FHE.asEuint64(duration);
         euint128 encSupply = FHE.asEuint128(supply);
+
+        // Grant auction creation permissions
+        FHEPermissions.grantAuctionCreationPermissions(
+            encStartPrice, encEndPrice, encDuration, encSupply, msg.sender, token, address(this)
+        );
+
+        // Store in temporary mapping to pass to next helper
+        _tempAuctionEncryption[auctionId] = TempEncryptionData({
+            startPrice: encStartPrice,
+            endPrice: encEndPrice,
+            duration: encDuration,
+            supply: encSupply
+        });
+    }
+
+    /// @dev Helper function to create auction data structure
+    function _createAuctionData(
+        uint256 auctionId,
+        PoolId poolId,
+        address token,
+        uint256 decayRate
+    ) private {
+        TempEncryptionData memory tempData = _tempAuctionEncryption[auctionId];
+        
+        // Create time and status encrypted values
         euint64 encStartTime = FHE.asEuint64(block.timestamp);
         ebool encIsActive = FHE.asEbool(true);
         euint128 encZeroAmount = FHE.asEuint128(0);
 
-        // ✅ Step 3: Define Access - CRITICAL MISSING STEP
-        FHEPermissions.grantAuctionCreationPermissions(
-            encStartPrice,
-            encEndPrice,
-            encDuration,
-            encSupply,
-            msg.sender, // seller
-            token, // token contract
-            address(this) // auction contract
-        );
-
-        // Additional time and status permissions
+        // Set time and status permissions
         FHEPermissions.grantTimePermissions(
-            encStartTime, encDuration, FHE.asEuint64(block.timestamp), msg.sender, address(this)
+            encStartTime, tempData.duration, FHE.asEuint64(block.timestamp), msg.sender, address(this)
         );
-
         FHEPermissions.grantBoolPermissions(encIsActive, msg.sender, address(this));
-
+        
         // Grant permissions for zero amount (sold tracking)
         FHE.allowThis(encZeroAmount);
         FHE.allow(encZeroAmount, msg.sender);
 
-        auctionId = nextAuctionId++;
-
         // Create bid queue for this auction
         BidQueue bidQueue = new BidQueue();
 
+        // Create auction data
         auctions[auctionId] = DutchAuctionData({
             poolId: poolId,
-            startPrice: encStartPrice,
-            endPrice: encEndPrice,
-            duration: encDuration,
-            totalSupply: encSupply,
+            startPrice: tempData.startPrice,
+            endPrice: tempData.endPrice,
+            duration: tempData.duration,
+            totalSupply: tempData.supply,
             soldAmount: encZeroAmount,
             startTime: encStartTime,
             isActive: encIsActive,
@@ -237,14 +288,8 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
             bidQueue: bidQueue
         });
 
-        // Track auction for user and pool
-        userAuctions[msg.sender].push(auctionId);
-        addAuctionToPool(poolId, auctionId);
-
-        // For demo, we'll use a fixed amount. In production, this needs proper validation
-        // IERC20(token).safeTransferFrom(msg.sender, address(this), 1000 ether);
-
-        emit AuctionCreated(auctionId, msg.sender, token, block.timestamp);
+        // Clean up temporary data
+        delete _tempAuctionEncryption[auctionId];
     }
 
     // =============================================================
