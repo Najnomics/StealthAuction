@@ -10,7 +10,7 @@ library PoolManagerAddresses {
     function getPoolManagerByChainId(uint256 chainId) internal pure returns (address poolManagerAddress) {
         if (chainId == 31337) {
             // Anvil
-            poolManagerAddress = address(0x0165878A594ca255338adfa4d48449f69242Eb8F);
+            poolManagerAddress = address(0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9);
         } else if (chainId == 11155111) {
             // Ethereum Sepolia
             poolManagerAddress = address(0x0Bf5c45Bc0419229FB512bb00366A612877ffF2D);
