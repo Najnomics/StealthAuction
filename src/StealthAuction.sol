@@ -32,6 +32,9 @@ import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "@uniswap/v4-core/src/type
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 
+// FHE Token Interface
+import {IFHERC20} from "./interface/IFHERC20.sol";
+
 // FHE Imports - Using the real CoFHE library
 import {FHE, InEuint128, InEuint64, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
@@ -208,9 +211,6 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         // Track auction for user and pool
         userAuctions[msg.sender].push(auctionId);
         addAuctionToPool(poolId, auctionId);
-
-        // For demo, we'll use a fixed amount. In production, this needs proper validation
-        // IERC20(token).safeTransferFrom(msg.sender, address(this), 1000 ether);
 
         emit AuctionCreated(auctionId, msg.sender, token, block.timestamp);
     }
@@ -734,16 +734,12 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         FHE.allow(bid.bidAmount, bidder);
         FHE.allowThis(bid.bidAmount);
 
-        // Execute encrypted token transfer (mock implementation)
-        // In production, this would use IFHERC20
-        // IFHERC20(auction.token).transferFromEncrypted(
-        //     address(this),
-        //     bidder,
-        //     bid.allocation
-        // );
-
-        // For now, request decryption for settlement
-        FHE.decrypt(bid.allocation);
+        // Execute encrypted token transfer using IFHERC20
+        IFHERC20(auction.token).transferFromEncrypted(
+            address(this),
+            bidder,
+            bid.allocation
+        );
 
         bid.settled = true;
         emit BidSettled(auctionId, bidder, block.timestamp);

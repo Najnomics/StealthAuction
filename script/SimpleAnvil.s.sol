@@ -10,7 +10,9 @@ import {PoolModifyLiquidityTest} from "@uniswap/v4-core/src/test/PoolModifyLiqui
 import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
-import {AuctionToken} from "../src/AuctionToken.sol";
+// DEPRECATED IMPORT - AuctionToken replaced by StealthAuctionToken  
+// import {AuctionToken} from "../src/AuctionToken.sol";
+import {StealthAuctionToken} from "../src/StealthAuctionToken.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
 
@@ -21,8 +23,8 @@ contract SimpleAnvilScript is Script {
     IPoolManager manager;
     PoolModifyLiquidityTest lpRouter;
     PoolSwapTest swapRouter;
-    AuctionToken token0;
-    AuctionToken token1;
+    StealthAuctionToken token0;
+    StealthAuctionToken token1;
 
     function setUp() public {}
 
@@ -53,7 +55,7 @@ contract SimpleAnvilScript is Script {
         console.log("=== Simple Deployment Complete ===");
         console.log("You can now test basic Uniswap V4 functionality!");
         console.log("PoolManager:", address(manager));
-        console.log("AuctionToken (Token0):", address(token0));
+        console.log("StealthAuctionToken (Token0):", address(token0));
         console.log("BaseToken (Token1):", address(token1));
     }
 
@@ -66,9 +68,9 @@ contract SimpleAnvilScript is Script {
         _swapRouter = new PoolSwapTest(_manager);
     }
 
-    function deployTokens() internal returns (AuctionToken _token0, AuctionToken _token1) {
-        _token0 = new AuctionToken("AuctionToken", "AUCT", 18);
-        _token1 = new AuctionToken("BaseToken", "BASE", 18);
+    function deployTokens() internal returns (StealthAuctionToken _token0, StealthAuctionToken _token1) {
+        _token0 = new StealthAuctionToken("AuctionToken", "AUCT");
+        _token1 = new StealthAuctionToken("BaseToken", "BASE");
         
         // Mint initial supply
         _token0.mint(msg.sender, 10_000_000 ether);

@@ -13,10 +13,10 @@ library PoolManagerAddresses {
             poolManagerAddress = address(0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9);
         } else if (chainId == 11155111) {
             // Ethereum Sepolia
-            poolManagerAddress = address(0x0Bf5c45Bc0419229FB512bb00366A612877ffF2D);
-        } else if (chainId == 421614) {
-            // Arbitrum Sepolia
-            poolManagerAddress = address(0x0Bf5c45Bc0419229FB512bb00366A612877ffF2D);
+            poolManagerAddress = address(0xE03A1074c86CFeDd5C142C4F04F1a1536e203543);
+        } else if (chainId == 11155111) {
+            // Ethereum Sepolia
+            poolManagerAddress = address(0xE03A1074c86CFeDd5C142C4F04F1a1536e203543);
         } else if (chainId == 84532) {
             // Base Sepolia
             poolManagerAddress = address(0x0Bf5c45Bc0419229FB512bb00366A612877ffF2D);

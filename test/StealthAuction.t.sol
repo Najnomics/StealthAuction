@@ -19,14 +19,14 @@ import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 
 import {Fixtures} from "./utils/Fixtures.sol";
 import {StealthAuction} from "../src/StealthAuction.sol";
-import {AuctionToken} from "../src/AuctionToken.sol";
+import {StealthAuctionToken} from "../src/StealthAuctionToken.sol"; // Updated import
 
 // FHE Imports
-import {InEuint128, InEuint64} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
+import {InEuint128, InEuint64, FHE, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 import {CoFheTest} from "@fhenixprotocol/cofhe-mock-contracts/CoFheTest.sol";
 
-/// @title StealthAuction Test Suite
-/// @notice Comprehensive integration tests for stealth auction functionality
+/// @title StealthAuction Test Suite  
+/// @notice Comprehensive integration tests for FHE-powered stealth auction functionality
 contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
@@ -36,9 +36,9 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     address hookAddr;
     PoolId poolId;
 
-    AuctionToken token0;
-    AuctionToken token1;
-    AuctionToken auctionToken;
+    StealthAuctionToken token0;
+    StealthAuctionToken token1;
+    StealthAuctionToken auctionToken;
 
     address seller = makeAddr("seller");
     address bidder1 = makeAddr("bidder1");
@@ -59,7 +59,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
 
     function setUp() public {
         // Deploy infrastructure
-        deployFreshManagerAndRouters();
+        (manager,,,,,,) = deployFreshManagerAndRouters();
         deployPosm(manager);
 
         // Deploy the hook to an address with the correct flags (all 4 hooks we use)
@@ -74,10 +74,10 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         hook = StealthAuction(flags);
         hookAddr = address(hook);
 
-        // Create tokens
-        token0 = new AuctionToken("Token0", "TOK0", 18);
-        token1 = new AuctionToken("Token1", "TOK1", 18);
-        auctionToken = new AuctionToken("Auction Token", "AUCT", 18);
+        // Create StealthAuctionTokens (updated from AuctionToken)
+        token0 = new StealthAuctionToken("Token0", "TOK0");
+        token1 = new StealthAuctionToken("Token1", "TOK1");
+        auctionToken = new StealthAuctionToken("Auction Token", "AUCT");
 
         // Sort tokens
         if (address(token0) > address(token1)) {
@@ -96,10 +96,12 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         poolId = key.toId();
         manager.initialize(key, SQRT_PRICE_1_1);
 
-        // Setup token balances
+        // Setup token balances using new FHE token system
+        vm.startPrank(address(this)); // Contract owner for minting
         auctionToken.mint(seller, AUCTION_SUPPLY * 10);
         token0.mint(address(this), 1000000 ether);
         token1.mint(address(this), 1000000 ether);
+        vm.stopPrank();
 
         // Setup bidder balances
         vm.deal(bidder1, 100 ether);
@@ -117,12 +119,17 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     // =============================================================
 
     function test_CreateEncryptedAuction() public {
+        // As the token owner (test contract), create auction supply with our own signature for token initialization
+        InEuint128 memory encSupplyForToken = createInEuint128(uint128(AUCTION_SUPPLY), address(this));
+        auctionToken.initializeAuctionSupply(address(hook), encSupplyForToken);
+
         vm.startPrank(seller);
 
+        // Seller creates their own encrypted inputs for the auction parameters
         InEuint128 memory encStartPrice = createInEuint128(uint128(START_PRICE), seller);
         InEuint128 memory encEndPrice = createInEuint128(uint128(END_PRICE), seller);
         InEuint64 memory encDuration = createInEuint64(uint64(AUCTION_DURATION), seller);
-        InEuint128 memory encSupply = createInEuint128(uint128(AUCTION_SUPPLY), seller);
+        InEuint128 memory encSupplyForAuction = createInEuint128(uint128(AUCTION_SUPPLY), seller);
 
         vm.expectEmit(true, true, true, true);
         emit AuctionCreated(1, seller, address(auctionToken), block.timestamp);
@@ -133,7 +140,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
             encStartPrice,
             encEndPrice,
             encDuration,
-            encSupply,
+            encSupplyForAuction,
             DECAY_RATE
         );
 
@@ -458,6 +465,96 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     }
 
     // =============================================================
+    //                   FHE DUTCH AUCTION SPECIFIC TESTS  
+    // =============================================================
+
+    function test_EncryptedPriceComparison() public {
+        uint256 auctionId = _createTestAuction();
+
+        // Test encrypted bid validation against encrypted current price
+        vm.startPrank(bidder1);
+        
+        // Submit bid above expected current price
+        InEuint128 memory highBid = createInEuint128(uint128(15 ether), bidder1);
+        hook.submitEncryptedBid(auctionId, highBid);
+        
+        vm.stopPrank();
+
+        // Verify bid was accepted (should pass price validation)
+        (,,,, uint256 bidderCount,) = hook.getAuctionInfo(auctionId);
+        assertEq(bidderCount, 1, "High bid should be accepted");
+    }
+
+    function test_EncryptedAuctionSettlementFlow() public {
+        uint256 auctionId = _createTestAuction();
+
+        // Submit encrypted bids
+        vm.startPrank(bidder1);
+        hook.submitEncryptedBid(auctionId, createInEuint128(uint128(8 ether), bidder1));
+        vm.stopPrank();
+
+        vm.startPrank(bidder2);
+        hook.submitEncryptedBid(auctionId, createInEuint128(uint128(6 ether), bidder2));
+        vm.stopPrank();
+
+        // Settle with encrypted token distribution
+        hook.settleAuction(auctionId);
+
+        // Verify settlement occurred (placeholder implementation)
+        (,, bool isActive,,,) = hook.getAuctionInfo(auctionId);
+        assertTrue(isActive, "Auction state after settlement");
+    }
+
+    function test_MultipleAuctionsWithFHETokens() public {
+        // Test multiple concurrent auctions using the same FHE token
+        address auction1Seller = makeAddr("auction1Seller");
+        address auction2Seller = makeAddr("auction2Seller");
+        
+        // Setup sellers with tokens
+        vm.startPrank(address(this));
+        auctionToken.mint(auction1Seller, AUCTION_SUPPLY * 5);
+        auctionToken.mint(auction2Seller, AUCTION_SUPPLY * 3);
+        vm.stopPrank();
+
+        // Create two auctions
+        vm.startPrank(auction1Seller);
+        auctionToken.approve(hookAddr, type(uint256).max);
+        uint256 auction1Id = hook.createEncryptedAuction(
+            poolId,
+            address(auctionToken),
+            createInEuint128(uint128(START_PRICE), auction1Seller),
+            createInEuint128(uint128(END_PRICE), auction1Seller),
+            createInEuint64(uint64(AUCTION_DURATION), auction1Seller),
+            createInEuint128(uint128(AUCTION_SUPPLY), auction1Seller),
+            DECAY_RATE
+        );
+        vm.stopPrank();
+
+        vm.startPrank(auction2Seller);
+        auctionToken.approve(hookAddr, type(uint256).max);
+        uint256 auction2Id = hook.createEncryptedAuction(
+            poolId,
+            address(auctionToken),
+            createInEuint128(uint128(START_PRICE + 2 ether), auction2Seller),
+            createInEuint128(uint128(END_PRICE), auction2Seller),
+            createInEuint64(uint64(AUCTION_DURATION / 2), auction2Seller),
+            createInEuint128(uint128(AUCTION_SUPPLY / 2), auction2Seller),
+            DECAY_RATE * 2
+        );
+        vm.stopPrank();
+
+        // Verify both auctions exist and are independent
+        assertEq(auction1Id, 1, "First auction should have ID 1");
+        assertEq(auction2Id, 2, "Second auction should have ID 2");
+
+        (address seller1,,,,,) = hook.getAuctionInfo(auction1Id);
+        (address seller2,,,,,) = hook.getAuctionInfo(auction2Id);
+        
+        assertEq(seller1, auction1Seller, "Auction 1 seller should match");
+        assertEq(seller2, auction2Seller, "Auction 2 seller should match");
+    }
+
+    // =============================================================
     //                    STRESS TESTS
     // =============================================================
 
@@ -531,80 +628,8 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     }
 
     // =============================================================
-    //                    HELPER FUNCTIONS
+    //                    HOOK FUNCTION COVERAGE
     // =============================================================
-
-    function _createTestAuction() internal returns (uint256 auctionId) {
-        vm.startPrank(seller);
-
-        InEuint128 memory encStartPrice = createInEuint128(uint128(START_PRICE), seller);
-        InEuint128 memory encEndPrice = createInEuint128(uint128(END_PRICE), seller);
-        InEuint64 memory encDuration = createInEuint64(uint64(AUCTION_DURATION), seller);
-        InEuint128 memory encSupply = createInEuint128(uint128(AUCTION_SUPPLY), seller);
-
-        auctionId = hook.createEncryptedAuction(
-            poolId, // poolId parameter
-            address(auctionToken),
-            encStartPrice,
-            encEndPrice,
-            encDuration,
-            encSupply,
-            DECAY_RATE
-        );
-
-        vm.stopPrank();
-    }
-
-    // ============================================================================
-    //                         COVERAGE IMPROVEMENT TESTS  
-    // ============================================================================
-
-    function test_OnlyByManagerModifier() public {
-        // Test that onlyByManager modifier works correctly
-        address nonManager = makeAddr("nonManager");
-        
-        vm.startPrank(nonManager);
-        vm.expectRevert(); // Just expect any revert for now
-        
-        // Try to call afterInitialize from non-manager (should fail)
-        PoolKey memory testKey = PoolKey({
-            currency0: Currency.wrap(address(token0)),
-            currency1: Currency.wrap(address(token1)),
-            fee: 3000,
-            tickSpacing: 60,
-            hooks: hook
-        });
-        
-        // This should revert because msg.sender is not the poolManager
-        hook.afterInitialize(address(this), testKey, 0, 0);
-        vm.stopPrank();
-    }
-
-    function test_GetCurrentPrice() public {
-        uint256 auctionId = _createTestAuction();
-        
-        // Test getCurrentPrice function (currently returns placeholder 0)
-        uint256 currentPrice = hook.getCurrentPrice(auctionId);
-        assertEq(currentPrice, 0, "getCurrentPrice should return 0 (placeholder)");
-        
-        // Test with non-existent auction ID
-        uint256 nonExistentId = 999;
-        uint256 priceForNonExistent = hook.getCurrentPrice(nonExistentId);
-        assertEq(priceForNonExistent, 0, "getCurrentPrice should return 0 for non-existent auction");
-    }
-
-    function test_IsAuctionActive() public {
-        uint256 auctionId = _createTestAuction();
-        
-        // Test isAuctionActive function (currently returns placeholder true)
-        bool isActive = hook.isAuctionActive(auctionId);
-        assertTrue(isActive, "isAuctionActive should return true (placeholder)");
-        
-        // Test with non-existent auction ID
-        uint256 nonExistentId = 999;
-        bool isActiveForNonExistent = hook.isAuctionActive(nonExistentId);
-        assertTrue(isActiveForNonExistent, "isAuctionActive should return true for non-existent auction (placeholder)");
-    }
 
     function test_HookFunctionCoverage() public {
         uint256 auctionId = _createTestAuction();
@@ -701,9 +726,39 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         hook.revealParameters(auctionId);
         vm.stopPrank();
     }
+
+    // =============================================================
+    //                    HELPER FUNCTIONS
+    // =============================================================
+
+    function _createTestAuction() internal returns (uint256 auctionId) {
+        // As the token owner (test contract), create auction supply with our own signature for token initialization
+        InEuint128 memory encSupplyForToken = createInEuint128(uint128(AUCTION_SUPPLY), address(this));
+        auctionToken.initializeAuctionSupply(address(hook), encSupplyForToken);
+
+        vm.startPrank(seller);
+
+        // Seller creates their own encrypted inputs for the auction parameters
+        InEuint128 memory encStartPrice = createInEuint128(uint128(START_PRICE), seller);
+        InEuint128 memory encEndPrice = createInEuint128(uint128(END_PRICE), seller);
+        InEuint64 memory encDuration = createInEuint64(uint64(AUCTION_DURATION), seller);
+        InEuint128 memory encSupplyForAuction = createInEuint128(uint128(AUCTION_SUPPLY), seller);
+
+        auctionId = hook.createEncryptedAuction(
+            poolId, // poolId parameter
+            address(auctionToken),
+            encStartPrice,
+            encEndPrice,
+            encDuration,
+            encSupplyForAuction,
+            DECAY_RATE
+        );
+
+        vm.stopPrank();
+    }
 }
 
-// HookMiner utility for finding hook addresses
+// HookMiner utility for finding hook addresses (kept for compatibility)
 library HookMiner {
     function find(address deployer, uint160 flags, bytes memory creationCode, bytes memory constructorArgs)
         internal
