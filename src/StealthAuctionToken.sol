@@ -46,8 +46,11 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //                   EVENTS
     // ===============================================
-    event EncryptedMint(address indexed to, uint256 indexed amount);
-    event EncryptedBurn(address indexed from, uint256 indexed amount);
+    event EncryptedMint(address indexed to, bytes32 indexed encryptedAmount);
+    event EncryptedBurn(address indexed from, bytes32 indexed encryptedAmount);
+    event EncryptedTransfer(address indexed from, address indexed to, bytes32 indexed encryptedAmount);
+    event BalanceWrapped(address indexed user, uint256 publicAmount, bytes32 encryptedAmount);
+    event BalanceUnwrapped(address indexed user, bytes32 encryptedAmount, uint256 publicAmount);
     event EncryptedTransfer(address indexed from, address indexed to);
     event Wrapped(address indexed user, uint256 amount);
     event UnwrapRequested(address indexed user, uint256 indexed requestId);
@@ -99,7 +102,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
         FHE.allowThis(totalEncryptedSupply);
         FHE.allowGlobal(totalEncryptedSupply);
 
-        emit EncryptedMint(user, euint128.unwrap(amount));
+        emit EncryptedMint(user, bytes32(euint128.unwrap(amount)));
     }
 
     // ===============================================
@@ -125,7 +128,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
         FHE.allowThis(totalEncryptedSupply);
         FHE.allowGlobal(totalEncryptedSupply);
 
-        emit EncryptedBurn(user, euint128.unwrap(amount));
+        emit EncryptedBurn(user, bytes32(euint128.unwrap(amount)));
     }
 
     function _calculateBurnAmount(address user, euint128 amount) internal returns (euint128) {
