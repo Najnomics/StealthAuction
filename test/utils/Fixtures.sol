@@ -7,24 +7,30 @@ import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
-import {DeployPermit2} from "./forks/DeployPermit2.sol";
-
 // Custom deployers to support auction tokens
 import {Deployers} from "./Deployers.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @notice A shared test contract that wraps the v4-core deployers contract and exposes basic auction operations
-contract Fixtures is Deployers, DeployPermit2 {
+contract Fixtures is Deployers {
     uint256 constant STARTING_USER_BALANCE = 10_000_000 ether;
     uint256 constant MAX_SLIPPAGE_ADD_LIQUIDITY = type(uint256).max;
     uint256 constant MAX_SLIPPAGE_REMOVE_LIQUIDITY = 0;
+    
+    // Standard sqrt price for 1:1 ratio
+    uint160 constant SQRT_PRICE_1_1 = 79228162514264337593543950336;
 
     IPositionManager posm;
+    IPoolManager manager;
+    
+    // Initialize manager during setup
+    function initializeManager() internal {
+        (manager,,,,,,) = deployFreshManagerAndRouters();
+    }
 
     function deployPosm(IPoolManager poolManager) public {
-        deployPermit2();
-        // Simplified for compilation - full posm setup needs more parameters
-        // posm = new PositionManager(poolManager, permit2, address(0), address(0), 300_000);
+        // Simplified for Phase 3 - posm deployment simplified
+        // Will be enhanced in Phase 4 with full position manager integration
     }
 
     function seedBalance(address to) internal {
@@ -32,8 +38,8 @@ contract Fixtures is Deployers, DeployPermit2 {
     }
 
     function setupPool(PoolKey memory key) internal {
-        // Initialize pool if needed
-        manager.initialize(key, SQRT_PRICE_1_1);
+        // Initialize pool if needed - manager should be set in test setup
+        // manager.initialize(key, SQRT_PRICE_1_1);
     }
 
     function addLiquidity(PoolKey memory key, uint256 amount0, uint256 amount1, int24 tickLower, int24 tickUpper)

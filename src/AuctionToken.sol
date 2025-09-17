@@ -1,12 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
+// =============================================================
+//                   DEPRECATED - PHASE 2 MIGRATION
+// =============================================================
+// This file has been replaced by StealthAuctionToken.sol
+// The old AuctionToken has been sunset in favor of FHE-enabled tokens
+// See: src/StealthAuctionToken.sol for the new implementation
+// =============================================================
+
+/*
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-/// @title AuctionToken
+/// @title AuctionToken [DEPRECATED]
 /// @notice ERC20 token for testing auction functionality
 /// @dev Simple mintable ERC20 for use in auction testing and demonstrations
+/// @dev REPLACED BY: StealthAuctionToken.sol with FHE capabilities
 contract AuctionToken is ERC20, Ownable {
     uint8 private _decimals;
 
@@ -63,3 +73,4 @@ contract AuctionToken is ERC20, Ownable {
         }
     }
 }
+*/

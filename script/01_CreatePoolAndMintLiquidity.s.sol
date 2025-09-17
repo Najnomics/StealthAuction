@@ -8,7 +8,9 @@ import {PoolId, PoolIdLibrary} from "@uniswap/v4-core/src/types/PoolId.sol";
 
 import {Constants} from "./base/Constants.sol";
 import {Config} from "./base/Config.sol";
-import {AuctionToken} from "../src/AuctionToken.sol";
+// DEPRECATED IMPORT - AuctionToken replaced by StealthAuctionToken
+// import {AuctionToken} from "../src/AuctionToken.sol";
+import {StealthAuctionToken} from "../src/StealthAuctionToken.sol";
 
 /// @notice Creates a pool with liquidity for auction testing
 contract CreatePoolAndMintLiquidityScript is Script, Constants, Config {
@@ -40,8 +42,9 @@ contract CreatePoolAndMintLiquidityScript is Script, Constants, Config {
         POOLMANAGER.initialize(key, SQRT_PRICE_1_1);
 
         // Mint tokens for liquidity provision
-        AuctionToken(Currency.unwrap(key.currency0)).mint(msg.sender, 100_000 ether);
-        AuctionToken(Currency.unwrap(key.currency1)).mint(msg.sender, 100_000 ether);
+        // COMMENTED OUT - Need to update for StealthAuctionToken 
+        // StealthAuctionToken(Currency.unwrap(key.currency0)).mint(msg.sender, 100_000 ether);
+        // StealthAuctionToken(Currency.unwrap(key.currency1)).mint(msg.sender, 100_000 ether);
 
         // Note: In a real script, you'd add liquidity via PositionManager
         // For now, just log the pool creation
