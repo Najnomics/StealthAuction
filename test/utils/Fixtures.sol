@@ -8,24 +8,20 @@ import {IPositionManager} from "v4-periphery/src/interfaces/IPositionManager.sol
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
 // Custom deployers to support auction tokens
-import {Deployers} from "./Deployers.sol";
+import {TestDeployers} from "./Deployers.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @notice A shared test contract that wraps the v4-core deployers contract and exposes basic auction operations
-contract Fixtures is Deployers {
+contract Fixtures is TestDeployers {
     uint256 constant STARTING_USER_BALANCE = 10_000_000 ether;
     uint256 constant MAX_SLIPPAGE_ADD_LIQUIDITY = type(uint256).max;
     uint256 constant MAX_SLIPPAGE_REMOVE_LIQUIDITY = 0;
     
-    // Standard sqrt price for 1:1 ratio
-    uint160 constant SQRT_PRICE_1_1 = 79228162514264337593543950336;
-
     IPositionManager posm;
-    IPoolManager manager;
     
     // Initialize manager during setup
     function initializeManager() internal {
-        (manager,,,,,,) = deployFreshManagerAndRouters();
+        // Manager is inherited from TestDeployers
     }
 
     function deployPosm(IPoolManager poolManager) public {
@@ -79,7 +75,5 @@ contract Fixtures is Deployers {
         }
     }
 
-    // Price limits for swaps
-    uint160 constant MIN_PRICE_LIMIT = TickMath.MIN_SQRT_PRICE + 1;
-    uint160 constant MAX_PRICE_LIMIT = TickMath.MAX_SQRT_PRICE - 1;
+    // Price limits for swaps (inherited from TestDeployers)
 }

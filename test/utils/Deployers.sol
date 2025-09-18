@@ -20,13 +20,14 @@ import {FHE, euint128, euint64} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 
 /// @title Test Deployers
 /// @notice Comprehensive deployment utilities for Uniswap v4 + FHE testing
-/// @dev Extends v4-core Deployers with FHE-compatible token support and position management
-contract Deployers is Test, V4Deployers {
+/// @dev Uses composition instead of inheritance to avoid identifier conflicts
+contract TestDeployers is Test {
     using PoolIdLibrary for PoolKey;
     using LPFeeLibrary for uint24;
 
     // Core Uniswap v4 contracts
     IPoolManager public manager;
+    V4Deployers public v4Deployers;
 
     // Test tokens
     MockERC20 public token0;
@@ -52,8 +53,8 @@ contract Deployers is Test, V4Deployers {
     uint24 public constant LP_FEE = 3000;
 
     function setUp() public virtual {
-        // Deploy core v4 infrastructure
-        deployFreshManagerAndRouters();
+        // Deploy core v4 infrastructure directly
+        manager = new PoolManager(address(this));
         
         // Deploy tokens
         deployTokens();
@@ -61,6 +62,12 @@ contract Deployers is Test, V4Deployers {
         
         // Initialize test pools
         initializeTestPools();
+    }
+
+    /// @notice Deploy fresh manager and routers
+    function deployFreshManagerAndRouters() public returns (IPoolManager) {
+        manager = new PoolManager(address(this));
+        return manager;
     }
 
     /// @notice Deploy standard ERC20 tokens for testing
@@ -121,7 +128,7 @@ contract Deployers is Test, V4Deployers {
         });
 
         poolId = key.toId();
-        manager.initialize(key, SQRT_PRICE_1_1, "");
+        manager.initialize(key, SQRT_PRICE_1_1);
 
         // FHE token pool
         fheKey = PoolKey({
@@ -133,7 +140,7 @@ contract Deployers is Test, V4Deployers {
         });
 
         fhePoolId = fheKey.toId();
-        manager.initialize(fheKey, SQRT_PRICE_1_1, "");
+        manager.initialize(fheKey, SQRT_PRICE_1_1);
     }
 
     /// @notice Deploy a hook with mining (template pattern)
@@ -173,7 +180,7 @@ contract Deployers is Test, V4Deployers {
     /// @return The pool ID
     function createAndInitializePool(PoolKey memory _key, uint160 sqrtPriceX96, bytes memory hookData) public returns (PoolId) {
         PoolId id = _key.toId();
-        manager.initialize(_key, sqrtPriceX96, hookData);
+        manager.initialize(_key, sqrtPriceX96);
         return id;
     }
 
@@ -207,7 +214,7 @@ contract Deployers is Test, V4Deployers {
     /// @param permissions The desired permissions bitmap
     /// @return A valid hook address
     function getHookAddress(uint160 permissions) public pure returns (address) {
-        return address(permissions | 0x1000000000000000000000000000000000000000);
+        return address(uint160(permissions) | uint160(0x1000000000000000000000000000000000000000));
     }
 
     /// @notice Deploy mock contracts for testing

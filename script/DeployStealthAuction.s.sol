@@ -240,10 +240,8 @@ contract DeployStealthAuction is Script {
     }
 
     function getNetworkPoolManager() internal view returns (address) {
-        try PoolManagerAddresses.getPoolManagerByChainId(block.chainid) returns (address poolManager) {
-            return poolManager;
-        } catch {
-            return address(0);
-        }
+        // For now, return a hardcoded address or use a different approach
+        // The try-catch with external calls is not supported in this context
+        return PoolManagerAddresses.getPoolManagerByChainId(block.chainid);
     }
 }

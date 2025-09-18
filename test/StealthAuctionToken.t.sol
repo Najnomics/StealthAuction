@@ -122,11 +122,11 @@ contract StealthAuctionTokenTest is Test, CoFheTest {
         euint128 transferAmount = FHE.asEuint128(TEST_AMOUNT / 2);
         FHE.allow(transferAmount, address(token));
         
-        euint128 actualTransferred = token.transferEncrypted(user2, transferAmount);
+        bool transferSuccess = token.transferEncrypted(user2, transferAmount);
         vm.stopPrank();
 
         // Verify transfer occurred
-        assertTrue(euint128.unwrap(actualTransferred) > 0, "Transfer should return non-zero amount");
+        assertTrue(transferSuccess, "Transfer should succeed");
         
         // Verify both users have encrypted balances
         euint128 user1Balance = token.encBalances(user1);
@@ -274,11 +274,11 @@ contract StealthAuctionTokenTest is Test, CoFheTest {
         euint128 winnerAllocation = FHE.asEuint128(TEST_AMOUNT);
         FHE.allow(winnerAllocation, address(token));
         
-        euint128 transferred = token.transferFromEncrypted(auctionContract, user1, winnerAllocation);
+        bool transferSuccess = token.transferFromEncrypted(auctionContract, user1, winnerAllocation);
         vm.stopPrank();
         
         // 3. Verify the complete flow worked
-        assertTrue(euint128.unwrap(transferred) > 0, "Transfer should have occurred");
+        assertTrue(transferSuccess, "Transfer should have succeeded");
         
         euint128 user1Balance = token.encBalances(user1);
         assertTrue(euint128.unwrap(user1Balance) > 0, "User1 should have received allocation");
@@ -344,8 +344,8 @@ contract StealthAuctionTokenTest is Test, CoFheTest {
         
         // Grant permissions and distribute
         for (uint256 i = 0; i < winners.length; i++) {
-            euint128 transferred = token.transferFromEncrypted(auctionContract, winners[i], allocations[i]);
-            assertTrue(euint128.unwrap(transferred) > 0, "Settlement transfer should succeed");
+            bool transferSuccess = token.transferFromEncrypted(auctionContract, winners[i], allocations[i]);
+            assertTrue(transferSuccess, "Settlement transfer should succeed");
         }
         
         vm.stopPrank();
@@ -374,7 +374,7 @@ contract StealthAuctionTokenTest is Test, CoFheTest {
         FHE.allow(largeAmount, address(token));
         
         // This should work (FHE operations don't revert, they return zero on insufficient balance)
-        euint128 transferred = token.transferFromEncrypted(auctionContract, user1, largeAmount);
+        bool transferSuccess = token.transferFromEncrypted(auctionContract, user1, largeAmount);
         
         // In FHE, insufficient balance operations typically return zero or partial amounts
         // The exact behavior depends on implementation
@@ -411,15 +411,15 @@ contract StealthAuctionTokenTest is Test, CoFheTest {
         vm.startPrank(auction1);
         euint128 amount1 = FHE.asEuint128(TEST_AMOUNT);
         FHE.allow(amount1, address(token));
-        euint128 transferred1 = token.transferFromEncrypted(auction1, user1, amount1);
-        assertTrue(euint128.unwrap(transferred1) > 0, "Auction1 settlement should work");
+        bool transferSuccess1 = token.transferFromEncrypted(auction1, user1, amount1);
+        assertTrue(transferSuccess1, "Auction1 settlement should work");
         vm.stopPrank();
         
         vm.startPrank(auction2);
         euint128 amount2 = FHE.asEuint128(TEST_AMOUNT / 2);
         FHE.allow(amount2, address(token));
-        euint128 transferred2 = token.transferFromEncrypted(auction2, user2, amount2);
-        assertTrue(euint128.unwrap(transferred2) > 0, "Auction2 settlement should work");
+        bool transferSuccess2 = token.transferFromEncrypted(auction2, user2, amount2);
+        assertTrue(transferSuccess2, "Auction2 settlement should work");
         vm.stopPrank();
     }
 }

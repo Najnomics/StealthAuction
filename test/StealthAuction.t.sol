@@ -34,10 +34,10 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
 
     StealthAuction hook;
     address hookAddr;
-    PoolId poolId;
+    PoolId auctionPoolId;
 
-    StealthAuctionToken token0;
-    StealthAuctionToken token1;
+    StealthAuctionToken auctionToken0;
+    StealthAuctionToken auctionToken1;
     StealthAuctionToken auctionToken;
 
     address seller = makeAddr("seller");
@@ -57,9 +57,9 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     event AuctionSettled(uint256 indexed auctionId, uint256 totalSold, uint256 bidderCount);
     event ParametersRevealed(uint256 indexed auctionId, uint128 startPrice, uint128 endPrice, uint64 duration);
 
-    function setUp() public {
+    function setUp() public override {
         // Deploy infrastructure
-        (manager,,,,,,) = deployFreshManagerAndRouters();
+        super.setUp(); // Call parent setUp to initialize manager
         deployPosm(manager);
 
         // Deploy the hook to an address with the correct flags (all 4 hooks we use)
@@ -75,32 +75,32 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         hookAddr = address(hook);
 
         // Create StealthAuctionTokens (updated from AuctionToken)
-        token0 = new StealthAuctionToken("Token0", "TOK0");
-        token1 = new StealthAuctionToken("Token1", "TOK1");
+        auctionToken0 = new StealthAuctionToken("Token0", "TOK0");
+        auctionToken1 = new StealthAuctionToken("Token1", "TOK1");
         auctionToken = new StealthAuctionToken("Auction Token", "AUCT");
 
         // Sort tokens
-        if (address(token0) > address(token1)) {
-            (token0, token1) = (token1, token0);
+        if (address(auctionToken0) > address(auctionToken1)) {
+            (auctionToken0, auctionToken1) = (auctionToken1, auctionToken0);
         }
 
         // Create pool
         PoolKey memory key = PoolKey({
-            currency0: Currency.wrap(address(token0)),
-            currency1: Currency.wrap(address(token1)),
+            currency0: Currency.wrap(address(auctionToken0)),
+            currency1: Currency.wrap(address(auctionToken1)),
             fee: 3000,
             tickSpacing: 60,
             hooks: IHooks(hookAddr)
         });
 
-        poolId = key.toId();
+        auctionPoolId = key.toId();
         manager.initialize(key, SQRT_PRICE_1_1);
 
         // Setup token balances using new FHE token system
         vm.startPrank(address(this)); // Contract owner for minting
         auctionToken.mint(seller, AUCTION_SUPPLY * 10);
-        token0.mint(address(this), 1000000 ether);
-        token1.mint(address(this), 1000000 ether);
+        auctionToken0.mint(address(this), 1000000 ether);
+        auctionToken1.mint(address(this), 1000000 ether);
         vm.stopPrank();
 
         // Setup bidder balances
@@ -135,7 +135,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         emit AuctionCreated(1, seller, address(auctionToken), block.timestamp);
 
         uint256 auctionId = hook.createEncryptedAuction(
-            poolId, // poolId parameter
+            auctionPoolId, // auctionPoolId parameter
             address(auctionToken),
             encStartPrice,
             encEndPrice,
@@ -175,7 +175,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
             InEuint128 memory encSupply = createInEuint128(uint128(AUCTION_SUPPLY), seller);
 
             uint256 auctionId = hook.createEncryptedAuction(
-                poolId, // poolId parameter
+                auctionPoolId, // auctionPoolId parameter
                 address(auctionToken),
                 encStartPrice,
                 encEndPrice,
@@ -520,7 +520,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         vm.startPrank(auction1Seller);
         auctionToken.approve(hookAddr, type(uint256).max);
         uint256 auction1Id = hook.createEncryptedAuction(
-            poolId,
+            auctionPoolId,
             address(auctionToken),
             createInEuint128(uint128(START_PRICE), auction1Seller),
             createInEuint128(uint128(END_PRICE), auction1Seller),
@@ -533,7 +533,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         vm.startPrank(auction2Seller);
         auctionToken.approve(hookAddr, type(uint256).max);
         uint256 auction2Id = hook.createEncryptedAuction(
-            poolId,
+            auctionPoolId,
             address(auctionToken),
             createInEuint128(uint128(START_PRICE + 2 ether), auction2Seller),
             createInEuint128(uint128(END_PRICE), auction2Seller),
@@ -588,7 +588,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
             InEuint128 memory encSupply = createInEuint128(uint128(AUCTION_SUPPLY), seller);
 
             auctionIds[i] = hook.createEncryptedAuction(
-                poolId, // poolId parameter
+                auctionPoolId, // auctionPoolId parameter
                 address(auctionToken),
                 encStartPrice,
                 encEndPrice,
@@ -644,8 +644,8 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         });
         
         PoolKey memory testKey = PoolKey({
-            currency0: Currency.wrap(address(token0)),
-            currency1: Currency.wrap(address(token1)),
+            currency0: Currency.wrap(address(auctionToken0)),
+            currency1: Currency.wrap(address(auctionToken1)),
             fee: 3000,
             tickSpacing: 60,
             hooks: hook
@@ -673,8 +673,8 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         BalanceDelta delta = BalanceDelta.wrap(0);
         
         PoolKey memory testKey = PoolKey({
-            currency0: Currency.wrap(address(token0)),
-            currency1: Currency.wrap(address(token1)),
+            currency0: Currency.wrap(address(auctionToken0)),
+            currency1: Currency.wrap(address(auctionToken1)),
             fee: 3000,
             tickSpacing: 60,
             hooks: hook
@@ -701,8 +701,8 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         });
 
         PoolKey memory testKey = PoolKey({
-            currency0: Currency.wrap(address(token0)),
-            currency1: Currency.wrap(address(token1)),
+            currency0: Currency.wrap(address(auctionToken0)),
+            currency1: Currency.wrap(address(auctionToken1)),
             fee: 3000,
             tickSpacing: 60,
             hooks: hook
@@ -745,7 +745,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         InEuint128 memory encSupplyForAuction = createInEuint128(uint128(AUCTION_SUPPLY), seller);
 
         auctionId = hook.createEncryptedAuction(
-            poolId, // poolId parameter
+            auctionPoolId, // auctionPoolId parameter
             address(auctionToken),
             encStartPrice,
             encEndPrice,
@@ -783,4 +783,5 @@ library HookMiner {
         bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), deployer, salt, keccak256(bytecode)));
         return address(uint160(uint256(hash)));
     }
+
 }
