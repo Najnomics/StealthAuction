@@ -1,0 +1,108 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'testnet'
+        type: choice
+        options:
+        - testnet
+        - mainnet
+
+jobs:
+  deploy-testnet:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: testnet
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+        
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'pnpm'
+        
+    - name: Install dependencies
+      run: |
+        pnpm install
+        forge install
+        
+    - name: Build contracts
+      run: forge build
+      
+    - name: Deploy to Fhenix Testnet
+      run: |
+        forge script script/DeployStealthAuction.s.sol \
+          --rpc-url ${{ secrets.FHENIX_TESTNET_RPC }} \
+          --private-key ${{ secrets.PRIVATE_KEY }} \
+          --broadcast \
+          --verify
+      env:
+        FHENIX_TESTNET_RPC: ${{ secrets.FHENIX_TESTNET_RPC }}
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+
+  deploy-mainnet:
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'mainnet')
+    runs-on: ubuntu-latest
+    environment: mainnet
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
+      with:
+        version: nightly
+        
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+        
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'pnpm'
+        
+    - name: Install dependencies
+      run: |
+        pnpm install
+        forge install
+        
+    - name: Build contracts
+      run: forge build
+      
+    - name: Deploy to Fhenix Mainnet
+      run: |
+        forge script script/DeployStealthAuction.s.sol \
+          --rpc-url ${{ secrets.FHENIX_MAINNET_RPC }} \
+          --private-key ${{ secrets.PRIVATE_KEY }} \
+          --broadcast \
+          --verify \
+          --slow
+      env:
+        FHENIX_MAINNET_RPC: ${{ secrets.FHENIX_MAINNET_RPC }}
+        PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}

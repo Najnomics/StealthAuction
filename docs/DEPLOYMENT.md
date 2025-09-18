@@ -25,7 +25,7 @@ git clone <repository>
 cd StealthAuction
 
 # Install dependencies
-forge install
+pnpm install
 
 # Compile contracts
 forge build
@@ -199,7 +199,7 @@ forge test -vvvv
 forge test --gas-report
 
 # Coverage analysis
-forge coverage
+forge coverage --ir-minimum
 
 # Static analysis
 slither .
