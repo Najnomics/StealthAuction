@@ -18,11 +18,14 @@ contract StealthAuctionScript is Script, Constants {
         console.log("Chain ID:", block.chainid);
         console.log("PoolManager:", address(POOLMANAGER));
 
-        // Hook contracts must have specific flags encoded in the address
-        // Complete hook coverage: afterInitialize, beforeAddLiquidity, beforeSwap, afterSwap
+        // Hook contracts must have specific flags encoded in the address.
+        // We opt into beforeAddLiquidity, beforeSwap, and afterSwap. We intentionally
+        // do NOT opt into afterInitialize to keep pool initialization simple and
+        // avoid strict coupling to PoolManager.initialize.
         uint160 flags = uint160(
-            Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_INITIALIZE_FLAG
-                | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+            Hooks.BEFORE_SWAP_FLAG |
+            Hooks.AFTER_SWAP_FLAG  |
+            Hooks.BEFORE_ADD_LIQUIDITY_FLAG
         );
 
         // Mine a salt that will produce a hook address with the correct flags
