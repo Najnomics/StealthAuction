@@ -109,12 +109,8 @@ contract DeployStealthAuction is Script {
         console.log("Deploying StealthAuction hook...");
 
         // Calculate hook address with required flags
-        uint160 flags = uint160(
-            Hooks.BEFORE_SWAP_FLAG | 
-            Hooks.AFTER_SWAP_FLAG | 
-            Hooks.AFTER_INITIALIZE_FLAG |
-            Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-        );
+        uint160 flags =
+            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG);
 
         // Use CREATE2 to deploy hook at calculated address
         bytes memory creationCode = type(StealthAuction).creationCode;

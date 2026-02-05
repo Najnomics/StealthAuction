@@ -13,7 +13,7 @@ contract HookMiner is Script {
         // Define the permissions our StealthAuction hook needs
         Hooks.Permissions memory permissions = Hooks.Permissions({
             beforeInitialize: false,
-            afterInitialize: true,      // Setup FHE infrastructure
+            afterInitialize: false,
             beforeAddLiquidity: true,   // Coordinate with auctions
             afterAddLiquidity: false,
             beforeRemoveLiquidity: false,
@@ -30,10 +30,7 @@ contract HookMiner is Script {
 
         // Calculate the required flags from permissions
         uint160 flags = uint160(
-            Hooks.AFTER_INITIALIZE_FLAG |
-            Hooks.BEFORE_ADD_LIQUIDITY_FLAG |
-            Hooks.BEFORE_SWAP_FLAG |
-            Hooks.AFTER_SWAP_FLAG
+            Hooks.BEFORE_ADD_LIQUIDITY_FLAG | Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG
         );
 
         console.log("Mining hook address with permissions:");
