@@ -19,7 +19,7 @@ library PositionManagerAddresses {
             positionManagerAddress = address(0x1B1C77B606d13b09C84d1c7394B96b147bC03147);
         } else if (chainId == 84532) {
             // Base Sepolia
-            positionManagerAddress = address(0x1B1C77B606d13b09C84d1c7394B96b147bC03147);
+            positionManagerAddress = address(0x4b2c77d209d3405f41a037ec6c77f7f5b8e2ca80);
         } else if (chainId == 8008135) {
             // Fhenix Helium
             positionManagerAddress = address(0x1B1C77B606d13b09C84d1c7394B96b147bC03147);

@@ -24,7 +24,7 @@ This project is built on **Fhenix Protocol's CoFHE (Confidential Fully Homomorph
 
 ### **Uniswap v4 Hook Architecture**
 Integrated with **Uniswap v4's revolutionary hook system**:
-- **4/4 essential hook permissions** enabled for complete auction integration
+- **3/3 essential hook permissions** enabled for complete auction integration (`beforeAddLiquidity`, `beforeSwap`, `afterSwap`)
 - **CREATE2 deterministic deployment** for predictable contract addresses
 - **PoolManager integration** via BaseHook for seamless DEX functionality
 - **MEV-resistant design** through encrypted parameter handling
@@ -487,7 +487,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ### **✅ Complete Integration Achieved**
 
 1. **🔐 100% FHE Compliance**: Full Fhenix CoFHE integration with 50+ permission calls
-2. **🎣 Complete Hook Coverage**: 4/4 essential Uniswap v4 hooks enabled  
+2. **🎣 Complete Hook Coverage**: 3/3 essential Uniswap v4 hooks enabled  
 3. **🛡️ End-to-End Encryption**: Auction parameters, bids, and prices stay encrypted
 4. **⚡ Production Ready**: Follows proven Fhenix patterns, deploys successfully
 
@@ -536,7 +536,7 @@ function _beforeSwap(...) internal override onlyByManager returns (bytes4, Befor
 
 1. **🔐 Complete Privacy**: Auction parameters, bids, and price comparisons stay encrypted throughout
 2. **⚡ MEV Immunity**: No actionable information visible to front-runners or sandwich attackers  
-3. **🎣 Hook Integration**: 4/4 essential Uniswap v4 permissions working with FHE operations
+3. **🎣 Hook Integration**: 3/3 essential Uniswap v4 permissions working with FHE operations
 4. **🛡️ Production Ready**: Core contracts deployed and tested; use Hook Miner for production pool creation
 
 **Built with ❤️ for the future of private DeFi** 🚀

@@ -16,7 +16,7 @@ library PoolManagerAddresses {
             poolManagerAddress = address(0x3A9D48AB9751398BbFa63ad67599Bb04e4BdF98b);
         } else if (chainId == 84532) {
             // Base Sepolia
-            poolManagerAddress = address(0x0Bf5c45Bc0419229FB512bb00366A612877ffF2D);
+            poolManagerAddress = address(0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408);
         } else if (chainId == 8008135) {
             // Fhenix Helium
             poolManagerAddress = address(0x0Bf5c45Bc0419229FB512bb00366A612877ffF2D);

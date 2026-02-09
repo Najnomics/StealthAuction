@@ -70,7 +70,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         PoolId poolId; // Associated pool ID
         euint128 startPrice; // Encrypted starting price
         euint128 endPrice; // Encrypted ending price
-        euint64 duration; // Encrypted auction duration
+        euint64 duration; // Encrypted auction duration // @audit could this get truncated?
         euint128 totalSupply; // Encrypted total token supply
         euint128 soldAmount; // Encrypted amount sold so far
         euint64 startTime; // Encrypted start timestamp
@@ -284,7 +284,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
             token: token,
             parametersRevealed: false,
             decayRate: decayRate,
-            bidQueue: bidQueue
+            bidQueue: bidQueue // @audit bidQueue is empty
         });
 
         // Clean up temporary data
@@ -299,7 +299,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         DutchAuctionData storage auction = auctions[auctionId];
 
         if (auction.seller == address(0)) revert AuctionNotFound();
-        if (bids[auctionId][msg.sender].bidder != address(0)) revert BidAlreadyExists();
+        if (bids[auctionId][msg.sender].bidder != address(0)) revert BidAlreadyExists(); // @audit prevents the same user from making multiple bids
 
         // ✅ Step 2: Call Operation
         euint128 encBidAmount = FHE.asEuint128(bidAmount);
@@ -336,7 +336,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         bids[auctionId][msg.sender] = BidData({
             bidAmount: encBidAmount,
             allocation: allocation,
-            bidder: msg.sender,
+            bidder: msg.sender, // @audit can this be anything other than msg.sender? redundant if not
             timestamp: block.timestamp,
             settled: false
         });

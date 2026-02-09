@@ -16,7 +16,8 @@ contract StealthAuctionScript is Script, Constants {
     function run() public returns (StealthAuction auctionHook) {
         console.log("Deploying StealthAuction Hook...");
         console.log("Chain ID:", block.chainid);
-        console.log("PoolManager:", address(POOLMANAGER));
+        address poolManager = vm.envOr("POOL_MANAGER_ADDRESS", address(POOLMANAGER));
+        console.log("PoolManager:", poolManager);
 
         // Hook contracts must have specific flags encoded in the address.
         // We opt into beforeAddLiquidity, beforeSwap, and afterSwap. We intentionally
@@ -29,7 +30,7 @@ contract StealthAuctionScript is Script, Constants {
         );
 
         // Mine a salt that will produce a hook address with the correct flags
-        bytes memory constructorArgs = abi.encode(POOLMANAGER);
+        bytes memory constructorArgs = abi.encode(poolManager);
         (address hookAddress, bytes32 salt) =
             HookMiner.find(CREATE2_DEPLOYER, flags, type(StealthAuction).creationCode, constructorArgs);
 
@@ -38,7 +39,7 @@ contract StealthAuctionScript is Script, Constants {
 
         // Deploy the hook using CREATE2
         vm.startBroadcast();
-        auctionHook = new StealthAuction{salt: salt}(IPoolManager(POOLMANAGER));
+        auctionHook = new StealthAuction{salt: salt}(IPoolManager(poolManager));
         vm.stopBroadcast();
 
         require(address(auctionHook) == hookAddress, "StealthAuctionScript: hook address mismatch");
