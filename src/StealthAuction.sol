@@ -241,10 +241,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
 
         // Store in temporary mapping to pass to next helper
         _tempAuctionEncryption[auctionId] = TempEncryptionData({
-            startPrice: encStartPrice,
-            endPrice: encEndPrice,
-            duration: encDuration,
-            supply: encSupply
+            startPrice: encStartPrice, endPrice: encEndPrice, duration: encDuration, supply: encSupply
         });
     }
 
@@ -572,7 +569,14 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         auction.startPrice = adjustedStartPrice;
     }
 
-    function updateAuctionPostSwap(PoolId poolId, SwapParams calldata, /* params */ BalanceDelta delta) internal {
+    function updateAuctionPostSwap(
+        PoolId poolId,
+        SwapParams calldata,
+        /* params */
+        BalanceDelta delta
+    )
+        internal
+    {
         uint256[] memory activeAuctions = getActiveAuctionsForPool(poolId);
 
         if (activeAuctions.length > 0) {
@@ -719,11 +723,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         FHE.allowThis(bid.bidAmount);
 
         // Execute encrypted token transfer using IFHERC20
-        IFHERC20(auction.token).transferFromEncrypted(
-            address(this),
-            bidder,
-            bid.allocation
-        );
+        IFHERC20(auction.token).transferFromEncrypted(address(this), bidder, bid.allocation);
 
         bid.settled = true;
         emit BidSettled(auctionId, bidder, block.timestamp);

@@ -23,11 +23,7 @@ contract StealthAuctionScript is Script, Constants {
         // We opt into beforeAddLiquidity, beforeSwap, and afterSwap. We intentionally
         // do NOT opt into afterInitialize to keep pool initialization simple and
         // avoid strict coupling to PoolManager.initialize.
-        uint160 flags = uint160(
-            Hooks.BEFORE_SWAP_FLAG |
-            Hooks.AFTER_SWAP_FLAG  |
-            Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-        );
+        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG);
 
         // Mine a salt that will produce a hook address with the correct flags
         bytes memory constructorArgs = abi.encode(poolManager);

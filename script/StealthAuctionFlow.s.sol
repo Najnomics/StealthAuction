@@ -43,13 +43,8 @@ contract StealthAuctionFlow is Script, CoFheTest {
         address seller = vm.addr(sellerPk);
 
         PoolId poolId = _computePoolId(hookAddr, token0, token1);
-        FlowConfig memory cfg = FlowConfig({
-            supply: 1000 ether,
-            startPrice: 10 ether,
-            endPrice: 1 ether,
-            duration: 3600,
-            decayRate: 100
-        });
+        FlowConfig memory cfg =
+            FlowConfig({supply: 1000 ether, startPrice: 10 ether, endPrice: 1 ether, duration: 3600, decayRate: 100});
 
         console.log("=== StealthAuction Flow Test ===");
         console.log("Seller:", seller);
@@ -76,9 +71,7 @@ contract StealthAuctionFlow is Script, CoFheTest {
         return key.toId();
     }
 
-    function _initializeAuctionSupply(address auctionToken, address hookAddr, address seller, uint256 supply)
-        internal
-    {
+    function _initializeAuctionSupply(address auctionToken, address hookAddr, address seller, uint256 supply) internal {
         InEuint128 memory encSupply = createInEuint128(uint128(supply), seller);
 
         vm.startPrank(seller);
@@ -100,15 +93,10 @@ contract StealthAuctionFlow is Script, CoFheTest {
         InEuint128 memory encSupply = createInEuint128(uint128(cfg.supply), seller);
 
         vm.startPrank(seller);
-        auctionId = StealthAuction(hookAddr).createEncryptedAuction(
-            poolId,
-            auctionToken,
-            encStartPrice,
-            encEndPrice,
-            encDuration,
-            encSupply,
-            cfg.decayRate
-        );
+        auctionId = StealthAuction(hookAddr)
+            .createEncryptedAuction(
+                poolId, auctionToken, encStartPrice, encEndPrice, encDuration, encSupply, cfg.decayRate
+            );
         vm.stopPrank();
 
         console.log("Auction created:", auctionId);

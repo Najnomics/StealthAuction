@@ -40,7 +40,7 @@ contract Config is Script {
             AUCTION_CURRENCY = Currency.wrap(address(AUCTION_TOKEN));
             BASE_CURRENCY = Currency.wrap(address(BASE_TOKEN));
         } else {
-            // Default/Other chains 
+            // Default/Other chains
             AUCTION_TOKEN = StealthAuctionToken(address(0x0eA00720cAA3b6A5d18683D09A75E8425934529c));
             BASE_TOKEN = StealthAuctionToken(address(0xBA131d183F67dD1B4252487681b598B6bC165D17));
             HOOK_CONTRACT = IHooks(address(0x5487bfA4195EB06d0084e3B5Cb52970396C350c0));

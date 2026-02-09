@@ -42,7 +42,7 @@ contract CreatePoolAndMintLiquidityScript is Script, Constants, Config {
         POOLMANAGER.initialize(key, SQRT_PRICE_1_1);
 
         // Mint tokens for liquidity provision
-        // COMMENTED OUT - Need to update for StealthAuctionToken 
+        // COMMENTED OUT - Need to update for StealthAuctionToken
         // StealthAuctionToken(Currency.unwrap(key.currency0)).mint(msg.sender, 100_000 ether);
         // StealthAuctionToken(Currency.unwrap(key.currency1)).mint(msg.sender, 100_000 ether);
 
