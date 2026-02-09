@@ -155,6 +155,7 @@ StealthAuction/
 │   ├── StealthAuction.s.sol         # Hook deployment
 │   ├── DeployStealthAuction.s.sol   # Complete system deployment
 │   ├── DeployTokens.s.sol           # Token deployment
+│   ├── StealthAuctionFlow.s.sol     # E2E flow test (fork simulation)
 │   ├── AuctionDemo.s.sol            # Live demonstration
 │   ├── SimpleAnvil.s.sol            # Local testing setup
 │   └── base/                        # Configuration files
@@ -306,6 +307,44 @@ forge coverage --ir-minimum --report lcov
 
 # Coverage for specific contracts
 forge coverage --ir-minimum --match-contract StealthAuction
+```
+
+### **End-to-End Flow Test (Fork Simulation)**
+
+The `StealthAuctionFlow.s.sol` script runs the **complete auction lifecycle** against a forked chain using Fhenix CoFHE mock infrastructure:
+
+```bash
+# Run full auction flow against a Base Sepolia fork
+forge script script/StealthAuctionFlow.s.sol \
+  --fork-url $RPC_URL -vvvv
+```
+
+This exercises: auction supply initialization, encrypted auction creation, encrypted bid submission (multiple bidders), settlement, and parameter reveal — all with FHE-encrypted values.
+
+#### **Important: `vm.startPrank` vs `vm.startBroadcast`**
+
+The flow script uses `vm.startPrank()` instead of `vm.startBroadcast()`. This is intentional and **required** when using CoFheTest mock FHE infrastructure in a forge script. Here's why:
+
+1. **`vm.startBroadcast()`** collects transactions for on-chain replay. Even without the `--broadcast` flag, forge runs a **"Simulated On-chain Traces"** phase that re-executes collected transactions against the real fork state — **without** the mock contracts deployed by `CoFheTest.etchFhenixMocks()`.
+
+2. **Mock-signed inputs fail on-chain verification.** The `CoFheTest` mock infrastructure signs encrypted inputs with a test private key (`SIGNER_PRIVATE_KEY` from `MockCoFHE.sol`). The real on-chain Fhenix TaskManager has a different `verifierSigner`, so `ecrecover` produces an `InvalidSigner` error during the on-chain replay.
+
+3. **`vm.startPrank()`** sets `msg.sender` for the simulation without collecting broadcast transactions. The entire flow runs inside the local fork environment where the mock FHE contracts exist, and no on-chain replay is attempted.
+
+> **For real on-chain broadcasting**, encrypted inputs must be generated through the Fhenix SDK/client tooling (which signs with the key matching the on-chain verifier), not through `CoFheTest` mocks.
+
+#### **Environment Variables**
+```bash
+# Required
+STEALTH_AUCTION_HOOK=0x...   # Deployed hook address
+AUCTION_TOKEN=0x...          # Deployed StealthAuctionToken address
+TOKEN0=0x...                 # Pool currency0
+TOKEN1=0x...                 # Pool currency1
+PRIVATE_KEY=0x...            # Seller private key
+
+# Optional (for multi-bidder testing)
+BIDDER1_PRIVATE_KEY=0x...    # First bidder
+BIDDER2_PRIVATE_KEY=0x...    # Second bidder
 ```
 
 ---
