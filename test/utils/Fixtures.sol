@@ -16,9 +16,9 @@ contract Fixtures is TestDeployers {
     uint256 constant STARTING_USER_BALANCE = 10_000_000 ether;
     uint256 constant MAX_SLIPPAGE_ADD_LIQUIDITY = type(uint256).max;
     uint256 constant MAX_SLIPPAGE_REMOVE_LIQUIDITY = 0;
-    
+
     IPositionManager posm;
-    
+
     // Initialize manager during setup
     function initializeManager() internal {
         // Manager is inherited from TestDeployers

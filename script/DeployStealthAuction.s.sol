@@ -19,6 +19,10 @@ import {PoolManagerAddresses} from "./base/PoolManagerAddresses.sol";
 contract DeployStealthAuction is Script {
     using PoolIdLibrary for PoolKey;
 
+    /// @dev The canonical CREATE2 deployer used by Uniswap / Foundry
+    /// @dev Must match the address used when actually deploying via CREATE2
+    address internal constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
+
     // Deployment configuration
     struct DeploymentConfig {
         address deployer;
@@ -44,26 +48,24 @@ contract DeployStealthAuction is Script {
 
     function run() external returns (DeploymentResult memory result) {
         DeploymentConfig memory config = _getDeploymentConfig();
-        
+
         console.log("Starting StealthAuction deployment on", config.networkName);
-        console.log("Deployer:", config.deployer);
-        console.log("Pool Manager:", config.poolManager);
+        console.log("Deployer (EOA):", config.deployer);
+        console.log("Pool Manager (using POOL_MANAGER_ADDRESS or default):", config.poolManager);
 
         vm.startBroadcast(config.deployerPrivateKey);
 
-        // Step 1: Deploy StealthAuction hook with correct flags
-        result.stealthAuctionHook = _deployStealthAuctionHook(config.poolManager);
-        
+        // Step 1: Use existing StealthAuction hook (deployed separately via StealthAuction.s.sol)
+        address existingHook = vm.envAddress("STEALTH_AUCTION_HOOK");
+        console.log("Using existing StealthAuction hook:", existingHook);
+        result.stealthAuctionHook = existingHook;
+
         // Step 2: Deploy FHE tokens
         (result.token0, result.token1, result.auctionToken) = _deployTokens();
-        
+
         // Step 3: Create and initialize pool
-        (result.poolId, result.poolKey) = _createPool(
-            config.poolManager,
-            result.stealthAuctionHook,
-            result.token0,
-            result.token1
-        );
+        (result.poolId, result.poolKey) =
+            _createPool(config.poolManager, result.stealthAuctionHook, result.token0, result.token1);
 
         // Step 4: Setup initial token distributions
         _setupInitialDistribution(result.token0, result.token1, result.auctionToken);
@@ -79,7 +81,7 @@ contract DeployStealthAuction is Script {
     function _getDeploymentConfig() internal returns (DeploymentConfig memory config) {
         config.deployer = msg.sender;
         config.deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        
+
         // Check for existing PoolManager or deploy new one
         address existingManager = vm.envOr("POOL_MANAGER_ADDRESS", address(0));
         if (existingManager != address(0)) {
@@ -107,12 +109,7 @@ contract DeployStealthAuction is Script {
         console.log("Deploying StealthAuction hook...");
 
         // Calculate hook address with required flags
-        uint160 flags = uint160(
-            Hooks.BEFORE_SWAP_FLAG | 
-            Hooks.AFTER_SWAP_FLAG | 
-            Hooks.AFTER_INITIALIZE_FLAG |
-            Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-        );
+        uint160 flags = uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG);
 
         // Use CREATE2 to deploy hook at calculated address
         bytes memory creationCode = type(StealthAuction).creationCode;
@@ -121,11 +118,11 @@ contract DeployStealthAuction is Script {
 
         // Find salt that gives us the right hook address
         bytes32 salt = _findSalt(flags, bytecode);
-        
+
         hookAddress = _deployWithSalt(bytecode, salt);
-        
+
         require(uint160(hookAddress) & ~flags == 0, "Hook address flags mismatch");
-        
+
         console.log("StealthAuction hook deployed at:", hookAddress);
         emit StealthAuctionDeployed(hookAddress, poolManager);
     }
@@ -150,16 +147,14 @@ contract DeployStealthAuction is Script {
         console.log("Token0 deployed at:", token0);
         console.log("Token1 deployed at:", token1);
         console.log("Auction token deployed at:", auctionToken);
-        
+
         emit TokensDeployed(token0, token1, auctionToken);
     }
 
-    function _createPool(
-        address poolManager,
-        address hook,
-        address token0,
-        address token1
-    ) internal returns (PoolId poolId, PoolKey memory key) {
+    function _createPool(address poolManager, address hook, address token0, address token1)
+        internal
+        returns (PoolId poolId, PoolKey memory key)
+    {
         console.log("Creating and initializing pool...");
 
         key = PoolKey({
@@ -180,16 +175,12 @@ contract DeployStealthAuction is Script {
         emit PoolCreated(poolId, hook);
     }
 
-    function _setupInitialDistribution(
-        address token0,
-        address token1,
-        address auctionToken
-    ) internal {
+    function _setupInitialDistribution(address token0, address token1, address auctionToken) internal {
         console.log("Setting up initial token distribution...");
 
         // Mint tokens to deployer for testing/demo purposes
         uint256 initialSupply = 1_000_000 * 1e18;
-        
+
         StealthAuctionToken(token0).mint(msg.sender, initialSupply);
         StealthAuctionToken(token1).mint(msg.sender, initialSupply);
         StealthAuctionToken(auctionToken).mint(msg.sender, initialSupply);
@@ -199,11 +190,16 @@ contract DeployStealthAuction is Script {
     }
 
     function _findSalt(uint160 flags, bytes memory bytecode) internal view returns (bytes32) {
-        for (uint256 i = 0; i < 100000; i++) {
+        // Follow the Uniswap v4 hook mining pattern: ensure that the deployed hook address
+        // has no extra permission bits set beyond those in `flags`. The constructor of
+        // StealthAuction (via BaseHook) will additionally validate that the *required*
+        // flags are present.
+        for (uint256 i = 0; i < 1_000_000; i++) {
             bytes32 salt = bytes32(i);
             address predicted = _predictAddress(bytecode, salt);
-            
-            if (uint160(predicted) & ~flags == 0) {
+
+            // Valid if the address does not set any bits outside of our desired flags
+            if (uint160(predicted) & (~flags) == 0) {
                 return salt;
             }
         }
@@ -211,12 +207,9 @@ contract DeployStealthAuction is Script {
     }
 
     function _predictAddress(bytes memory bytecode, bytes32 salt) internal view returns (address) {
-        bytes32 hash = keccak256(abi.encodePacked(
-            bytes1(0xff),
-            address(this),
-            salt,
-            keccak256(bytecode)
-        ));
+        // Predict the address using the canonical CREATE2 deployer address, matching the
+        // behavior of Uniswap v4 and Foundry's create2 helper.
+        bytes32 hash = keccak256(abi.encodePacked(bytes1(0xff), CREATE2_DEPLOYER, salt, keccak256(bytecode)));
         return address(uint160(uint256(hash)));
     }
 

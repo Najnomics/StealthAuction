@@ -50,7 +50,7 @@ contract StealthAuctionDemo is Script, CoFheTest {
     function run() external {
         _loadConfiguration();
         _setupParticipants();
-        
+
         console.log("=== StealthAuction FHE Demo Starting ===");
         emit DemoStarted("FHE Dutch Auction Demonstration");
 
@@ -70,11 +70,11 @@ contract StealthAuctionDemo is Script, CoFheTest {
         stealthAuctionHook = vm.envAddress("STEALTH_AUCTION_HOOK");
         auctionToken = vm.envAddress("AUCTION_TOKEN");
         poolManager = vm.envAddress("POOL_MANAGER");
-        
+
         // Load pool configuration
         address token0 = vm.envAddress("TOKEN0");
         address token1 = vm.envAddress("TOKEN1");
-        
+
         PoolKey memory key = PoolKey({
             currency0: Currency.wrap(token0),
             currency1: Currency.wrap(token1),
@@ -139,14 +139,8 @@ contract StealthAuctionDemo is Script, CoFheTest {
         vm.startBroadcast(msg.sender);
 
         // Initialize auction token supply (as token owner)
-        InEuint128 memory encSupplyForToken = _createEncryptedInput(
-            uint128(config.auctionSupply), 
-            msg.sender
-        );
-        StealthAuctionToken(auctionToken).initializeAuctionSupply(
-            stealthAuctionHook, 
-            encSupplyForToken
-        );
+        InEuint128 memory encSupplyForToken = _createEncryptedInput(uint128(config.auctionSupply), msg.sender);
+        StealthAuctionToken(auctionToken).initializeAuctionSupply(stealthAuctionHook, encSupplyForToken);
 
         vm.stopBroadcast();
 
@@ -158,15 +152,10 @@ contract StealthAuctionDemo is Script, CoFheTest {
         InEuint64 memory encDuration = _createEncryptedInput64(uint64(config.duration), seller);
         InEuint128 memory encSupplyForAuction = _createEncryptedInput(uint128(config.auctionSupply), seller);
 
-        uint256 auctionId = StealthAuction(stealthAuctionHook).createEncryptedAuction(
-            poolId,
-            auctionToken,
-            encStartPrice,
-            encEndPrice,
-            encDuration,
-            encSupplyForAuction,
-            config.decayRate
-        );
+        uint256 auctionId = StealthAuction(stealthAuctionHook)
+            .createEncryptedAuction(
+                poolId, auctionToken, encStartPrice, encEndPrice, encDuration, encSupplyForAuction, config.decayRate
+            );
 
         vm.stopBroadcast();
 
@@ -237,7 +226,7 @@ contract StealthAuctionDemo is Script, CoFheTest {
         uint256 auctionId = 1;
 
         console.log("Current blockchain time:", block.timestamp);
-        
+
         // Demonstrate price checks at different times
         uint256 currentPrice = StealthAuction(stealthAuctionHook).getCurrentPrice(auctionId);
         console.log("Current auction price: [ENCRYPTED/PLACEHOLDER]", currentPrice);
@@ -245,7 +234,7 @@ contract StealthAuctionDemo is Script, CoFheTest {
         // Advance time to middle of auction
         vm.warp(block.timestamp + 1800); // 30 minutes
         console.log("Advanced time by 30 minutes");
-        
+
         uint256 midPrice = StealthAuction(stealthAuctionHook).getCurrentPrice(auctionId);
         console.log("Mid-auction price: [ENCRYPTED/PLACEHOLDER]", midPrice);
 
@@ -268,10 +257,10 @@ contract StealthAuctionDemo is Script, CoFheTest {
         console.log("Auction duration completed");
 
         vm.startBroadcast(msg.sender);
-        
+
         // Settle the auction
         StealthAuction(stealthAuctionHook).settleAuction(auctionId);
-        
+
         vm.stopBroadcast();
 
         console.log("Auction settled successfully");
@@ -291,10 +280,10 @@ contract StealthAuctionDemo is Script, CoFheTest {
         uint256 auctionId = 1;
 
         vm.startBroadcast(seller);
-        
+
         // Reveal parameters (seller's choice)
         StealthAuction(stealthAuctionHook).revealParameters(auctionId);
-        
+
         vm.stopBroadcast();
 
         console.log("Auction parameters revealed by seller");

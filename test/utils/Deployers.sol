@@ -55,11 +55,11 @@ contract TestDeployers is Test {
     function setUp() public virtual {
         // Deploy core v4 infrastructure directly
         manager = new PoolManager(address(this));
-        
+
         // Deploy tokens
         deployTokens();
         deployFHETokens();
-        
+
         // Initialize test pools
         initializeTestPools();
     }
@@ -154,7 +154,7 @@ contract TestDeployers is Test {
 
         // Deploy using vm.etch (template pattern)
         vm.etch(hookAddress, hookCode);
-        
+
         return IHooks(hookAddress);
     }
 
@@ -163,7 +163,11 @@ contract TestDeployers is Test {
     /// @param _currency1 Second currency
     /// @param _hooks Hook contract address
     /// @return The pool key
-    function createPoolKey(Currency _currency0, Currency _currency1, IHooks _hooks) public pure returns (PoolKey memory) {
+    function createPoolKey(Currency _currency0, Currency _currency1, IHooks _hooks)
+        public
+        pure
+        returns (PoolKey memory)
+    {
         return PoolKey({
             currency0: _currency0,
             currency1: _currency1,
@@ -178,7 +182,10 @@ contract TestDeployers is Test {
     /// @param sqrtPriceX96 Initial price
     /// @param hookData Hook initialization data
     /// @return The pool ID
-    function createAndInitializePool(PoolKey memory _key, uint160 sqrtPriceX96, bytes memory hookData) public returns (PoolId) {
+    function createAndInitializePool(PoolKey memory _key, uint160 sqrtPriceX96, bytes memory hookData)
+        public
+        returns (PoolId)
+    {
         PoolId id = _key.toId();
         manager.initialize(_key, sqrtPriceX96);
         return id;

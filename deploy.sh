@@ -13,22 +13,23 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-NETWORK=${1:-anvil}
-PRIVATE_KEY=${PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}
+NETWORK=${1:-base-sepolia}
+PRIVATE_KEY=${PRIVATE_KEY:-""}
+RPC_URL=${RPC_URL:-""}
 
 echo -e "${BLUE}=== StealthAuction Deployment & Demo Script ===${NC}"
 echo -e "${YELLOW}Network: $NETWORK${NC}"
-echo -e "${YELLOW}Using private key: ${PRIVATE_KEY:0:10}...${NC}"
+echo -e "${YELLOW}Using private key: [hidden]${NC}"
 
 # Step 1: Environment Setup
 echo -e "\n${BLUE}Step 1: Setting up environment...${NC}"
 
-# Create .env file if it doesn't exist
+# Create .env file if it doesn't exist (no secrets written)
 if [ ! -f .env ]; then
     echo -e "${YELLOW}Creating .env file...${NC}"
     cat > .env << EOF
-PRIVATE_KEY=$PRIVATE_KEY
 NETWORK=$NETWORK
+RPC_URL=$RPC_URL
 EOF
 fi
 
@@ -75,10 +76,24 @@ echo -e "\n${BLUE}Step 4: Deploying StealthAuction system...${NC}"
 
 if [ "$NETWORK" = "anvil" ]; then
     RPC_URL="http://localhost:8545"
+    if [ -z "$PRIVATE_KEY" ]; then
+        PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+    fi
     EXTRA_ARGS="--legacy"
 else
-    RPC_URL=${RPC_URL:-""}
-    EXTRA_ARGS=""
+    if [ -z "$RPC_URL" ]; then
+        echo -e "${RED}✗ RPC_URL is required for $NETWORK deployments${NC}"
+        exit 1
+    fi
+    if [ -z "$PRIVATE_KEY" ]; then
+        echo -e "${RED}✗ PRIVATE_KEY is required for $NETWORK deployments${NC}"
+        exit 1
+    fi
+    if [ "$NETWORK" = "base-sepolia" ]; then
+        EXTRA_ARGS="--legacy"
+    else
+        EXTRA_ARGS=""
+    fi
 fi
 
 echo -e "${YELLOW}Deploying to: $RPC_URL${NC}"
@@ -166,8 +181,8 @@ cat > deployment-summary.md << EOF
 - ✅ FHE-powered Dutch auctions
 - ✅ Encrypted bidding system
 - ✅ Uniswap v4 hook integration
-- ✅ 4-hook system (beforeSwap, afterSwap, afterInitialize, beforeAddLiquidity)
-- ✅ Comprehensive test suite (24/24 tests passing)
+- ✅ 3-hook system (beforeSwap, afterSwap, beforeAddLiquidity)
+- ✅ Comprehensive test suite (117 tests passing)
 
 ## Demo Results
 The demo successfully demonstrated:

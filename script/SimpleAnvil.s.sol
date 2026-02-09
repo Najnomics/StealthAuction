@@ -10,7 +10,7 @@ import {PoolModifyLiquidityTest} from "@uniswap/v4-core/src/test/PoolModifyLiqui
 import {PoolSwapTest} from "@uniswap/v4-core/src/test/PoolSwapTest.sol";
 import {PoolKey} from "@uniswap/v4-core/src/types/PoolKey.sol";
 import {Currency, CurrencyLibrary} from "@uniswap/v4-core/src/types/Currency.sol";
-// DEPRECATED IMPORT - AuctionToken replaced by StealthAuctionToken  
+// DEPRECATED IMPORT - AuctionToken replaced by StealthAuctionToken
 // import {AuctionToken} from "../src/AuctionToken.sol";
 import {StealthAuctionToken} from "../src/StealthAuctionToken.sol";
 import {TickMath} from "@uniswap/v4-core/src/libraries/TickMath.sol";
@@ -19,7 +19,7 @@ import {Constants} from "@uniswap/v4-core/src/../test/utils/Constants.sol";
 /// @notice Simple deployment script for Anvil without FHE
 contract SimpleAnvilScript is Script {
     address constant CREATE2_DEPLOYER = address(0x4e59b44847b379578588920cA78FbF26c0B4956C);
-    
+
     IPoolManager manager;
     PoolModifyLiquidityTest lpRouter;
     PoolSwapTest swapRouter;
@@ -31,7 +31,7 @@ contract SimpleAnvilScript is Script {
     function run() public {
         console.log("=== Simple Anvil Deployment (without FHE) ===");
         console.log("Chain ID:", block.chainid);
-        
+
         // Step 1: Deploy PoolManager
         vm.startBroadcast();
         manager = deployPoolManager();
@@ -49,9 +49,9 @@ contract SimpleAnvilScript is Script {
 
         // Step 4: Create a basic pool
         createBasicPool();
-        
+
         vm.stopBroadcast();
-        
+
         console.log("=== Simple Deployment Complete ===");
         console.log("You can now test basic Uniswap V4 functionality!");
         console.log("PoolManager:", address(manager));
@@ -63,7 +63,10 @@ contract SimpleAnvilScript is Script {
         return IPoolManager(address(new PoolManager(address(0))));
     }
 
-    function deployRouters(IPoolManager _manager) internal returns (PoolModifyLiquidityTest _lpRouter, PoolSwapTest _swapRouter) {
+    function deployRouters(IPoolManager _manager)
+        internal
+        returns (PoolModifyLiquidityTest _lpRouter, PoolSwapTest _swapRouter)
+    {
         _lpRouter = new PoolModifyLiquidityTest(_manager);
         _swapRouter = new PoolSwapTest(_manager);
     }
@@ -71,7 +74,7 @@ contract SimpleAnvilScript is Script {
     function deployTokens() internal returns (StealthAuctionToken _token0, StealthAuctionToken _token1) {
         _token0 = new StealthAuctionToken("AuctionToken", "AUCT");
         _token1 = new StealthAuctionToken("BaseToken", "BASE");
-        
+
         // Mint initial supply
         _token0.mint(msg.sender, 10_000_000 ether);
         _token1.mint(msg.sender, 10_000_000 ether);
@@ -95,11 +98,11 @@ contract SimpleAnvilScript is Script {
         // Initialize pool
         manager.initialize(poolKey, Constants.SQRT_PRICE_1_1);
         console.log("Basic pool created without hooks");
-        
+
         // Approve tokens
         token0.approve(address(lpRouter), type(uint256).max);
         token1.approve(address(lpRouter), type(uint256).max);
-        
+
         console.log("Tokens approved for trading");
     }
 }

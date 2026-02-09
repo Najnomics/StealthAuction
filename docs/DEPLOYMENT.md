@@ -63,6 +63,32 @@ forge script script/SimpleAnvil.s.sol \
   --broadcast
 ```
 
+#### Testnet Deployment (Base Sepolia)
+```bash
+# Set environment variables
+export PRIVATE_KEY=0x...
+export RPC_URL=https://your.base-sepolia.rpc
+export POOL_MANAGER_ADDRESS=0x05E73354cFDd6745C338b50BcFDfA3Aa6fA03408
+
+# 1) Deploy the hook (mines address with correct flags)
+forge script script/StealthAuction.s.sol:StealthAuctionScript \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast \
+  --legacy
+
+# 2) Deploy tokens and initialize pool
+# Use the hook address printed above
+export STEALTH_AUCTION_HOOK=0xYourDeployedHookAddress
+
+forge script script/DeployStealthAuction.s.sol:DeployStealthAuction \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast \
+  --sig "run()" \
+  --legacy
+```
+
 #### Testnet Deployment (Fhenix Helium)
 ```bash
 # Set environment variables
@@ -99,6 +125,27 @@ forge script script/AuctionDemo.s.sol \
   --rpc-url http://localhost:8545 \
   --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
   --broadcast
+```
+
+### 5. Full Workflow Test (Base Sepolia)
+```bash
+# Required env vars from deployment
+export STEALTH_AUCTION_HOOK=0xYourDeployedHookAddress
+export AUCTION_TOKEN=0xYourAuctionToken
+export TOKEN0=0xYourToken0
+export TOKEN1=0xYourToken1
+
+# Required keys (fund these accounts on Base Sepolia)
+export PRIVATE_KEY=0xYourSellerPrivateKey
+export BIDDER1_PRIVATE_KEY=0xYourBidder1PrivateKey
+export BIDDER2_PRIVATE_KEY=0xYourBidder2PrivateKey
+
+# Run full workflow (auction creation → bids → settle → reveal)
+forge script script/StealthAuctionFlow.s.sol:StealthAuctionFlow \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast \
+  --legacy
 ```
 
 ## Demo Walkthrough
@@ -140,7 +187,6 @@ The demo demonstrates the complete FHE Dutch auction lifecycle:
 5. **AuctionLibrary** - Utility functions
 
 ### Hook Integration
-- `afterInitialize` - Pool initialization handling
 - `beforeAddLiquidity` - Liquidity addition validation
 - `beforeSwap` - Auction-aware swap processing
 - `afterSwap` - Post-swap auction updates

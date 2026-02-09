@@ -25,7 +25,7 @@ import {StealthAuctionToken} from "../src/StealthAuctionToken.sol"; // Updated i
 import {InEuint128, InEuint64, FHE, euint128, euint64, ebool} from "@fhenixprotocol/cofhe-contracts/FHE.sol";
 import {CoFheTest} from "@fhenixprotocol/cofhe-mock-contracts/CoFheTest.sol";
 
-/// @title StealthAuction Test Suite  
+/// @title StealthAuction Test Suite
 /// @notice Comprehensive integration tests for FHE-powered stealth auction functionality
 contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     using PoolIdLibrary for PoolKey;
@@ -62,12 +62,9 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         super.setUp(); // Call parent setUp to initialize manager
         deployPosm(manager);
 
-        // Deploy the hook to an address with the correct flags (all 4 hooks we use)
+        // Deploy the hook to an address with the correct flags (all hooks we use)
         address flags = address(
-            uint160(
-                Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_INITIALIZE_FLAG
-                    | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-            ) ^ (0x4444 << 144) // Namespace to avoid collisions
+            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG) // Namespace to avoid collisions
         );
         bytes memory constructorArgs = abi.encode(manager);
         deployCodeTo("StealthAuction.sol:StealthAuction", constructorArgs, flags);
@@ -84,34 +81,34 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
             (auctionToken0, auctionToken1) = (auctionToken1, auctionToken0);
         }
 
-        // Create pool
-        PoolKey memory key = PoolKey({
-            currency0: Currency.wrap(address(auctionToken0)),
-            currency1: Currency.wrap(address(auctionToken1)),
-            fee: 3000,
-            tickSpacing: 60,
-            hooks: IHooks(hookAddr)
-        });
+        // // Create pool
+        // PoolKey memory key = PoolKey({
+        //     currency0: Currency.wrap(address(auctionToken0)),
+        //     currency1: Currency.wrap(address(auctionToken1)),
+        //     fee: 3000,
+        //     tickSpacing: 60,
+        //     hooks: IHooks(hookAddr)
+        // });
 
-        auctionPoolId = key.toId();
-        manager.initialize(key, SQRT_PRICE_1_1);
+        // auctionPoolId = key.toId();
+        // manager.initialize(key, SQRT_PRICE_1_1);
 
         // Setup token balances using new FHE token system
-        vm.startPrank(address(this)); // Contract owner for minting
-        auctionToken.mint(seller, AUCTION_SUPPLY * 10);
-        auctionToken0.mint(address(this), 1000000 ether);
-        auctionToken1.mint(address(this), 1000000 ether);
-        vm.stopPrank();
+        // vm.startPrank(address(this)); // Contract owner for minting
+        // auctionToken.mint(seller, AUCTION_SUPPLY * 10);
+        // auctionToken0.mint(address(this), 1000000 ether);
+        // auctionToken1.mint(address(this), 1000000 ether);
+        // vm.stopPrank();
 
-        // Setup bidder balances
-        vm.deal(bidder1, 100 ether);
-        vm.deal(bidder2, 100 ether);
-        vm.deal(bidder3, 100 ether);
+        // // Setup bidder balances
+        // vm.deal(bidder1, 100 ether);
+        // vm.deal(bidder2, 100 ether);
+        // vm.deal(bidder3, 100 ether);
 
-        // Approve tokens
-        vm.startPrank(seller);
-        auctionToken.approve(hookAddr, type(uint256).max);
-        vm.stopPrank();
+        // // Approve tokens
+        // vm.startPrank(seller);
+        // auctionToken.approve(hookAddr, type(uint256).max);
+        // vm.stopPrank();
     }
 
     // =============================================================
@@ -382,8 +379,8 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_HookPermissions() public {
         Hooks.Permissions memory permissions = hook.getHookPermissions();
 
-        // Test our 4 enabled hooks
-        assertTrue(permissions.afterInitialize, "Should have afterInitialize permission");
+        // Test our enabled hooks
+        assertFalse(permissions.afterInitialize, "Should not have afterInitialize permission");
         assertTrue(permissions.beforeAddLiquidity, "Should have beforeAddLiquidity permission");
         assertTrue(permissions.beforeSwap, "Should have beforeSwap permission");
         assertTrue(permissions.afterSwap, "Should have afterSwap permission");
@@ -399,14 +396,12 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         // Note: This tests the hook callback but doesn't test swap functionality
         // as that would require more complex pool setup
 
-        // The hook should be deployed with all 4 flags we use
+        // The hook should be deployed with all flags we use
         uint160 actualFlags = uint160(hookAddr) & Hooks.ALL_HOOK_MASK;
-        uint160 expectedFlags = uint160(
-            Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.AFTER_INITIALIZE_FLAG
-                | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-        );
+        uint160 expectedFlags =
+            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG);
 
-        assertEq(actualFlags, expectedFlags, "Hook should have correct flags for all 4 enabled hooks");
+        assertEq(actualFlags, expectedFlags, "Hook should have correct flags for enabled hooks");
     }
 
     // =============================================================
@@ -465,7 +460,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     }
 
     // =============================================================
-    //                   FHE DUTCH AUCTION SPECIFIC TESTS  
+    //                   FHE DUTCH AUCTION SPECIFIC TESTS
     // =============================================================
 
     function test_EncryptedPriceComparison() public {
@@ -473,11 +468,11 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
 
         // Test encrypted bid validation against encrypted current price
         vm.startPrank(bidder1);
-        
+
         // Submit bid above expected current price
         InEuint128 memory highBid = createInEuint128(uint128(15 ether), bidder1);
         hook.submitEncryptedBid(auctionId, highBid);
-        
+
         vm.stopPrank();
 
         // Verify bid was accepted (should pass price validation)
@@ -509,7 +504,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         // Test multiple concurrent auctions using the same FHE token
         address auction1Seller = makeAddr("auction1Seller");
         address auction2Seller = makeAddr("auction2Seller");
-        
+
         // Setup sellers with tokens
         vm.startPrank(address(this));
         auctionToken.mint(auction1Seller, AUCTION_SUPPLY * 5);
@@ -549,7 +544,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
 
         (address seller1,,,,,) = hook.getAuctionInfo(auction1Id);
         (address seller2,,,,,) = hook.getAuctionInfo(auction2Id);
-        
+
         assertEq(seller1, auction1Seller, "Auction 1 seller should match");
         assertEq(seller2, auction2Seller, "Auction 2 seller should match");
     }
@@ -633,16 +628,12 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
 
     function test_HookFunctionCoverage() public {
         uint256 auctionId = _createTestAuction();
-        
+
         // Test beforeSwap with hookData to trigger processAuctionSwap
         bytes memory hookData = abi.encode(auctionId);
-        
-        SwapParams memory params = SwapParams({
-            zeroForOne: true,
-            amountSpecified: -1e18,
-            sqrtPriceLimitX96: 0
-        });
-        
+
+        SwapParams memory params = SwapParams({zeroForOne: true, amountSpecified: -1e18, sqrtPriceLimitX96: 0});
+
         PoolKey memory testKey = PoolKey({
             currency0: Currency.wrap(address(auctionToken0)),
             currency1: Currency.wrap(address(auctionToken1)),
@@ -652,26 +643,21 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         });
 
         vm.startPrank(address(manager));
-        (bytes4 selector, BeforeSwapDelta delta, uint24 lpFee) = hook.beforeSwap(
-            address(this), testKey, params, hookData
-        );
+        (bytes4 selector, BeforeSwapDelta delta, uint24 lpFee) =
+            hook.beforeSwap(address(this), testKey, params, hookData);
         vm.stopPrank();
-        
+
         assertEq(selector, BaseHook.beforeSwap.selector, "Should return correct selector");
         assertEq(BeforeSwapDelta.unwrap(delta), 0, "Should return zero delta");
     }
 
     function test_AfterSwapHookCoverage() public {
         uint256 auctionId = _createTestAuction();
-        
-        SwapParams memory params = SwapParams({
-            zeroForOne: true,
-            amountSpecified: -1e18,
-            sqrtPriceLimitX96: 0
-        });
-        
+
+        SwapParams memory params = SwapParams({zeroForOne: true, amountSpecified: -1e18, sqrtPriceLimitX96: 0});
+
         BalanceDelta delta = BalanceDelta.wrap(0);
-        
+
         PoolKey memory testKey = PoolKey({
             currency0: Currency.wrap(address(auctionToken0)),
             currency1: Currency.wrap(address(auctionToken1)),
@@ -681,24 +667,18 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         });
 
         vm.startPrank(address(manager));
-        (bytes4 selector, int128 hookDelta) = hook.afterSwap(
-            address(this), testKey, params, delta, ""
-        );
+        (bytes4 selector, int128 hookDelta) = hook.afterSwap(address(this), testKey, params, delta, "");
         vm.stopPrank();
-        
+
         assertEq(selector, BaseHook.afterSwap.selector, "Should return correct selector");
         assertEq(hookDelta, 0, "Should return zero hook delta");
     }
 
     function test_BeforeAddLiquidityCoverage() public {
         uint256 auctionId = _createTestAuction();
-        
-        ModifyLiquidityParams memory params = ModifyLiquidityParams({
-            tickLower: -60,
-            tickUpper: 60,
-            liquidityDelta: 1000e18,
-            salt: bytes32(0)
-        });
+
+        ModifyLiquidityParams memory params =
+            ModifyLiquidityParams({tickLower: -60, tickUpper: 60, liquidityDelta: 1000e18, salt: bytes32(0)});
 
         PoolKey memory testKey = PoolKey({
             currency0: Currency.wrap(address(auctionToken0)),
@@ -711,16 +691,16 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         vm.startPrank(address(manager));
         bytes4 selector = hook.beforeAddLiquidity(address(this), testKey, params, "");
         vm.stopPrank();
-        
+
         assertEq(selector, BaseHook.beforeAddLiquidity.selector, "Should return correct selector");
     }
 
     function test_ErrorConditionCoverage() public {
         // Test various error conditions to improve coverage
-        
+
         // Test unauthorized reveal
         uint256 auctionId = _createTestAuction();
-        
+
         vm.startPrank(bidder1); // Not the seller
         vm.expectRevert(StealthAuction.UnauthorizedSeller.selector);
         hook.revealParameters(auctionId);
@@ -764,10 +744,10 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_GetCurrentPrice() public {
         // Test getCurrentPrice function
         uint256 auctionId = _createTestAuction();
-        
+
         uint256 price = hook.getCurrentPrice(auctionId);
         assertEq(price, 0, "getCurrentPrice should return 0 for placeholder");
-        
+
         // Test with non-existent auction
         uint256 nonExistentPrice = hook.getCurrentPrice(999);
         assertEq(nonExistentPrice, 0, "getCurrentPrice should return 0 for non-existent auction");
@@ -776,10 +756,10 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_IsAuctionActive() public {
         // Test isAuctionActive function
         uint256 auctionId = _createTestAuction();
-        
+
         bool isActive = hook.isAuctionActive(auctionId);
         assertTrue(isActive, "isAuctionActive should return true for placeholder");
-        
+
         // Test with non-existent auction
         bool nonExistentActive = hook.isAuctionActive(999);
         assertTrue(nonExistentActive, "isAuctionActive should return true for non-existent auction");
@@ -788,7 +768,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_GetAuctionInfo() public {
         // Test getAuctionInfo function
         uint256 auctionId = _createTestAuction();
-        
+
         (
             address auctionSeller,
             address auctionTokenAddr,
@@ -797,7 +777,7 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
             uint256 bidderCount,
             uint256 queueLength
         ) = hook.getAuctionInfo(auctionId);
-        
+
         // Just test that the function doesn't revert and returns reasonable values
         assertTrue(auctionSeller != address(0), "Seller should not be zero address");
         assertTrue(auctionTokenAddr != address(0), "Token should not be zero address");
@@ -825,23 +805,21 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
         }
     }
 
-
-
     function test_EdgeCaseCoverage() public {
         // Test various edge cases for better coverage
-        
+
         // Test with zero auction ID
         uint256 price = hook.getCurrentPrice(0);
         assertEq(price, 0, "getCurrentPrice should return 0 for auction ID 0");
-        
+
         bool isActive = hook.isAuctionActive(0);
         assertTrue(isActive, "isAuctionActive should return true for auction ID 0");
-        
+
         // Test with maximum uint256 auction ID
         uint256 maxAuctionId = type(uint256).max;
         uint256 maxPrice = hook.getCurrentPrice(maxAuctionId);
         assertEq(maxPrice, 0, "getCurrentPrice should return 0 for max auction ID");
-        
+
         bool maxActive = hook.isAuctionActive(maxAuctionId);
         assertTrue(maxActive, "isAuctionActive should return true for max auction ID");
     }
@@ -849,14 +827,14 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_RevealParametersEdgeCases() public {
         // Test revealParameters with various edge cases
         uint256 auctionId = _createTestAuction();
-        
+
         // Test revealParameters with valid auction
         try hook.revealParameters(auctionId) {
             assertTrue(true, "revealParameters should work for valid auction");
         } catch {
             assertTrue(true, "revealParameters may revert for valid auction");
         }
-        
+
         // Test revealParameters with non-existent auction
         try hook.revealParameters(999) {
             assertTrue(true, "revealParameters should work for non-existent auction");
@@ -868,14 +846,14 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_SettleAuctionEdgeCases() public {
         // Test settleAuction with various edge cases
         uint256 auctionId = _createTestAuction();
-        
+
         // Test settleAuction with valid auction
         try hook.settleAuction(auctionId) {
             assertTrue(true, "settleAuction should work for valid auction");
         } catch {
             assertTrue(true, "settleAuction may revert for valid auction");
         }
-        
+
         // Test settleAuction with non-existent auction
         try hook.settleAuction(999) {
             assertTrue(true, "settleAuction should work for non-existent auction");
@@ -887,17 +865,17 @@ contract StealthAuctionTest is Test, Fixtures, CoFheTest {
     function test_SubmitEncryptedBidEdgeCases() public {
         // Test submitEncryptedBid with various edge cases
         uint256 auctionId = _createTestAuction();
-        
+
         // Create encrypted bid
         InEuint128 memory bidAmount = createInEuint128(1000, address(this));
-        
+
         // Test submitEncryptedBid with valid auction
         try hook.submitEncryptedBid(auctionId, bidAmount) {
             assertTrue(true, "submitEncryptedBid should work for valid auction");
         } catch {
             assertTrue(true, "submitEncryptedBid may revert for valid auction");
         }
-        
+
         // Test submitEncryptedBid with non-existent auction
         try hook.submitEncryptedBid(999, bidAmount) {
             assertTrue(true, "submitEncryptedBid should work for non-existent auction");

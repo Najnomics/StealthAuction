@@ -10,7 +10,7 @@ import {FHE, InEuint128, euint128} from "@fhenixprotocol/cofhe-contracts/FHE.sol
  * @title StealthAuctionToken
  * @notice FHE-enabled ERC20 token for stealth auctions with hybrid public/encrypted balances
  * @dev Based on HybridFHERC20 pattern from FHE hook template
- * 
+ *
  * Key Features:
  * - Dual balance system: public ERC20 + encrypted FHE balances
  * - Encrypted transfers for auction privacy
@@ -33,13 +33,13 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //                   STORAGE
     // ===============================================
-    
+
     /// @notice Encrypted balances mapping
     mapping(address => euint128) public encBalances;
-    
+
     /// @notice Total encrypted supply
     euint128 public totalEncryptedSupply = FHE.asEuint128(0);
-    
+
     /// @notice Zero constant for FHE operations
     euint128 private immutable ZERO = FHE.asEuint128(0);
 
@@ -55,10 +55,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //                 CONSTRUCTOR
     // ===============================================
-    constructor(string memory name, string memory symbol) 
-        ERC20(name, symbol) 
-        Ownable(msg.sender) 
-    {
+    constructor(string memory name, string memory symbol) ERC20(name, symbol) Ownable(msg.sender) {
         FHE.allowThis(ZERO);
         FHE.allowThis(totalEncryptedSupply);
     }
@@ -66,7 +63,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //              PUBLIC MINT/BURN
     // ===============================================
-    
+
     /// @notice Mint public tokens (for testing/setup)
     function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
@@ -80,7 +77,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //             ENCRYPTED MINT FUNCTIONS
     // ===============================================
-    
+
     function mintEncrypted(address user, InEuint128 memory amount) external onlyOwner {
         _mintEnc(user, FHE.asEuint128(amount));
     }
@@ -105,7 +102,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //             ENCRYPTED BURN FUNCTIONS
     // ===============================================
-    
+
     function burnEncrypted(address user, InEuint128 memory amount) external onlyOwner {
         _burnEnc(user, FHE.asEuint128(amount));
     }
@@ -135,7 +132,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //           ENCRYPTED TRANSFER FUNCTIONS
     // ===============================================
-    
+
     function transferEncrypted(address to, InEuint128 memory amount) external returns (bool) {
         _transferImpl(msg.sender, to, FHE.asEuint128(amount));
         return true;
@@ -190,7 +187,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //            DECRYPT BALANCE FUNCTIONS
     // ===============================================
-    
+
     function decryptBalance(address user) external {
         FHE.decrypt(encBalances[user]);
     }
@@ -206,7 +203,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //           ENCRYPTED WRAPPING FUNCTIONS
     // ===============================================
-    
+
     function wrap(address user, uint128 amount) external {
         _wrap(user, amount);
     }
@@ -224,7 +221,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //          ENCRYPTED UNWRAPPING FUNCTIONS
     // ===============================================
-    
+
     function requestUnwrap(address user, InEuint128 memory amount) external returns (euint128) {
         return _requestUnwrap(user, FHE.asEuint128(amount));
     }
@@ -275,7 +272,7 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //            MISSING INTERFACE FUNCTIONS
     // ===============================================
-    
+
     function balanceOfEncrypted(address account) external view returns (euint128) {
         return encBalances[account];
     }
@@ -299,16 +296,13 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     // ===============================================
     //               AUCTION-SPECIFIC FUNCTIONS
     // ===============================================
-    
+
     /// @notice Batch mint encrypted tokens for multiple auction participants
     /// @param recipients Array of recipient addresses
     /// @param amounts Array of encrypted amounts to mint
-    function batchMintEncrypted(address[] calldata recipients, euint128[] calldata amounts) 
-        external 
-        onlyOwner 
-    {
+    function batchMintEncrypted(address[] calldata recipients, euint128[] calldata amounts) external onlyOwner {
         require(recipients.length == amounts.length, "Array length mismatch");
-        
+
         for (uint256 i = 0; i < recipients.length; i++) {
             _mintEnc(recipients[i], amounts[i]);
         }
@@ -317,12 +311,9 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     /// @notice Initialize auction token supply with encrypted amount
     /// @param auctionContract Address of the auction contract
     /// @param encryptedSupply Encrypted total supply for the auction
-    function initializeAuctionSupply(address auctionContract, euint128 encryptedSupply) 
-        external 
-        onlyOwner 
-    {
+    function initializeAuctionSupply(address auctionContract, euint128 encryptedSupply) external onlyOwner {
         _mintEnc(auctionContract, encryptedSupply);
-        
+
         // Grant auction contract permission to manage this supply
         FHE.allow(encryptedSupply, auctionContract);
     }
@@ -330,13 +321,10 @@ contract StealthAuctionToken is ERC20, Ownable, IFHERC20 {
     /// @notice Initialize auction token supply with encrypted amount (InEuint128 overload)
     /// @param auctionContract Address of the auction contract
     /// @param amount Encrypted input amount for the auction
-    function initializeAuctionSupply(address auctionContract, InEuint128 memory amount) 
-        external 
-        onlyOwner 
-    {
+    function initializeAuctionSupply(address auctionContract, InEuint128 memory amount) external onlyOwner {
         euint128 encryptedSupply = FHE.asEuint128(amount);
         _mintEnc(auctionContract, encryptedSupply);
-        
+
         // Grant auction contract permission to manage this supply
         FHE.allow(encryptedSupply, auctionContract);
     }

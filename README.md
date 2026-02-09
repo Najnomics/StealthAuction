@@ -24,7 +24,7 @@ This project is built on **Fhenix Protocol's CoFHE (Confidential Fully Homomorph
 
 ### **Uniswap v4 Hook Architecture**
 Integrated with **Uniswap v4's revolutionary hook system**:
-- **4/4 essential hook permissions** enabled for complete auction integration
+- **3/3 essential hook permissions** enabled for complete auction integration (`beforeAddLiquidity`, `beforeSwap`, `afterSwap`)
 - **CREATE2 deterministic deployment** for predictable contract addresses
 - **PoolManager integration** via BaseHook for seamless DEX functionality
 - **MEV-resistant design** through encrypted parameter handling
@@ -155,6 +155,7 @@ StealthAuction/
 │   ├── StealthAuction.s.sol         # Hook deployment
 │   ├── DeployStealthAuction.s.sol   # Complete system deployment
 │   ├── DeployTokens.s.sol           # Token deployment
+│   ├── StealthAuctionFlow.s.sol     # E2E flow test (fork simulation)
 │   ├── AuctionDemo.s.sol            # Live demonstration
 │   ├── SimpleAnvil.s.sol            # Local testing setup
 │   └── base/                        # Configuration files
@@ -306,6 +307,44 @@ forge coverage --ir-minimum --report lcov
 
 # Coverage for specific contracts
 forge coverage --ir-minimum --match-contract StealthAuction
+```
+
+### **End-to-End Flow Test (Fork Simulation)**
+
+The `StealthAuctionFlow.s.sol` script runs the **complete auction lifecycle** against a forked chain using Fhenix CoFHE mock infrastructure:
+
+```bash
+# Run full auction flow against a Base Sepolia fork
+forge script script/StealthAuctionFlow.s.sol \
+  --fork-url $RPC_URL -vvvv
+```
+
+This exercises: auction supply initialization, encrypted auction creation, encrypted bid submission (multiple bidders), settlement, and parameter reveal — all with FHE-encrypted values.
+
+#### **Important: `vm.startPrank` vs `vm.startBroadcast`**
+
+The flow script uses `vm.startPrank()` instead of `vm.startBroadcast()`. This is intentional and **required** when using CoFheTest mock FHE infrastructure in a forge script. Here's why:
+
+1. **`vm.startBroadcast()`** collects transactions for on-chain replay. Even without the `--broadcast` flag, forge runs a **"Simulated On-chain Traces"** phase that re-executes collected transactions against the real fork state — **without** the mock contracts deployed by `CoFheTest.etchFhenixMocks()`.
+
+2. **Mock-signed inputs fail on-chain verification.** The `CoFheTest` mock infrastructure signs encrypted inputs with a test private key (`SIGNER_PRIVATE_KEY` from `MockCoFHE.sol`). The real on-chain Fhenix TaskManager has a different `verifierSigner`, so `ecrecover` produces an `InvalidSigner` error during the on-chain replay.
+
+3. **`vm.startPrank()`** sets `msg.sender` for the simulation without collecting broadcast transactions. The entire flow runs inside the local fork environment where the mock FHE contracts exist, and no on-chain replay is attempted.
+
+> **For real on-chain broadcasting**, encrypted inputs must be generated through the Fhenix SDK/client tooling (which signs with the key matching the on-chain verifier), not through `CoFheTest` mocks.
+
+#### **Environment Variables**
+```bash
+# Required
+STEALTH_AUCTION_HOOK=0x...   # Deployed hook address
+AUCTION_TOKEN=0x...          # Deployed StealthAuctionToken address
+TOKEN0=0x...                 # Pool currency0
+TOKEN1=0x...                 # Pool currency1
+PRIVATE_KEY=0x...            # Seller private key
+
+# Optional (for multi-bidder testing)
+BIDDER1_PRIVATE_KEY=0x...    # First bidder
+BIDDER2_PRIVATE_KEY=0x...    # Second bidder
 ```
 
 ---
@@ -487,7 +526,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ### **✅ Complete Integration Achieved**
 
 1. **🔐 100% FHE Compliance**: Full Fhenix CoFHE integration with 50+ permission calls
-2. **🎣 Complete Hook Coverage**: 4/4 essential Uniswap v4 hooks enabled  
+2. **🎣 Complete Hook Coverage**: 3/3 essential Uniswap v4 hooks enabled  
 3. **🛡️ End-to-End Encryption**: Auction parameters, bids, and prices stay encrypted
 4. **⚡ Production Ready**: Follows proven Fhenix patterns, deploys successfully
 
@@ -536,7 +575,7 @@ function _beforeSwap(...) internal override onlyByManager returns (bytes4, Befor
 
 1. **🔐 Complete Privacy**: Auction parameters, bids, and price comparisons stay encrypted throughout
 2. **⚡ MEV Immunity**: No actionable information visible to front-runners or sandwich attackers  
-3. **🎣 Hook Integration**: 4/4 essential Uniswap v4 permissions working with FHE operations
+3. **🎣 Hook Integration**: 3/3 essential Uniswap v4 permissions working with FHE operations
 4. **🛡️ Production Ready**: Core contracts deployed and tested; use Hook Miner for production pool creation
 
 **Built with ❤️ for the future of private DeFi** 🚀

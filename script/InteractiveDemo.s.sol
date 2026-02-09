@@ -8,22 +8,21 @@ import {StealthAuctionToken} from "../src/StealthAuctionToken.sol";
 /// @title Interactive StealthAuction Demo
 /// @notice Step-by-step interactive demonstration of FHE Dutch auction features
 contract InteractiveDemo is Script {
-    
     StealthAuction public hook;
     StealthAuctionToken public auctionToken;
-    
+
     address public seller = vm.addr(1);
     address public bidder1 = vm.addr(2);
     address public bidder2 = vm.addr(3);
-    
+
     event DemoStep(uint256 step, string description);
-    
+
     function run() external {
         console.log("=== Interactive StealthAuction Demo ===\n");
-        
+
         // Load deployed contracts
         _loadContracts();
-        
+
         // Interactive demo steps
         _step1_Overview();
         _step2_AuctionCreation();
@@ -31,27 +30,27 @@ contract InteractiveDemo is Script {
         _step4_EncryptionBenefits();
         _step5_SettlementDemo();
         _step6_TechnicalDetails();
-        
+
         console.log("=== Demo Complete ===");
         console.log("The StealthAuction system demonstrates how FHE enables");
         console.log("private, fair, and efficient Dutch auctions on Ethereum.");
     }
-    
+
     function _loadContracts() internal {
         address hookAddr = vm.envAddress("STEALTH_AUCTION_HOOK");
         address tokenAddr = vm.envAddress("AUCTION_TOKEN");
-        
+
         hook = StealthAuction(hookAddr);
         auctionToken = StealthAuctionToken(tokenAddr);
-        
+
         console.log("Loaded contracts:");
         console.log("Hook:", address(hook));
         console.log("Token:", address(auctionToken));
     }
-    
+
     function _step1_Overview() internal {
         emit DemoStep(1, "System Overview");
-        
+
         console.log("STEP 1: StealthAuction Overview");
         console.log("-------------------------------");
         console.log("");
@@ -65,13 +64,13 @@ contract InteractiveDemo is Script {
         console.log("Key Innovation: All sensitive data remains encrypted on-chain,");
         console.log("while still enabling complex auction logic and fair settlements.");
         console.log("");
-        
+
         _pause();
     }
-    
+
     function _step2_AuctionCreation() internal {
         emit DemoStep(2, "Auction Creation");
-        
+
         console.log("STEP 2: Creating an Encrypted Dutch Auction");
         console.log("------------------------------------------");
         console.log("");
@@ -94,13 +93,13 @@ contract InteractiveDemo is Script {
         console.log("* Sellers can't be gamed by sophisticated bidders");
         console.log("* True price discovery without information asymmetry");
         console.log("");
-        
+
         _pause();
     }
-    
+
     function _step3_BiddingDemo() internal {
         emit DemoStep(3, "Bidding Process");
-        
+
         console.log("STEP 3: Encrypted Bidding Process");
         console.log("---------------------------------");
         console.log("");
@@ -124,13 +123,13 @@ contract InteractiveDemo is Script {
         console.log("* Real-time bid validation against encrypted current price");
         console.log("* Queue management preserves bid order privately");
         console.log("");
-        
+
         _pause();
     }
-    
+
     function _step4_EncryptionBenefits() internal {
         emit DemoStep(4, "FHE Benefits Analysis");
-        
+
         console.log("STEP 4: Why Fully Homomorphic Encryption (FHE)?");
         console.log("----------------------------------------------");
         console.log("");
@@ -154,13 +153,13 @@ contract InteractiveDemo is Script {
         console.log("");
         console.log("All operations maintain privacy while enabling complex logic!");
         console.log("");
-        
+
         _pause();
     }
-    
+
     function _step5_SettlementDemo() internal {
         emit DemoStep(5, "Settlement Process");
-        
+
         console.log("STEP 5: Private Settlement and Token Distribution");
         console.log("------------------------------------------------");
         console.log("");
@@ -183,13 +182,13 @@ contract InteractiveDemo is Script {
         console.log("+ Transparent settlement algorithm");
         console.log("+ Verifiable fairness without compromising privacy");
         console.log("");
-        
+
         _pause();
     }
-    
+
     function _step6_TechnicalDetails() internal {
         emit DemoStep(6, "Technical Implementation");
-        
+
         console.log("STEP 6: Technical Implementation Details");
         console.log("--------------------------------------");
         console.log("");
@@ -218,28 +217,22 @@ contract InteractiveDemo is Script {
         console.log("* Optimized hook flag calculations");
         console.log("* Minimal on-chain computation overhead");
         console.log("");
-        
+
         _pause();
     }
-    
+
     function _pause() internal view {
         console.log("Press Enter to continue...");
         // In a real interactive demo, this would wait for user input
         // For automated demo, we just add spacing
         console.log("");
     }
-    
+
     // Utility function to demonstrate current auction state
     function showAuctionState(uint256 auctionId) external view {
-        (
-            address auctionSeller,
-            address token,
-            bool isActive,
-            bool revealed,
-            uint256 bidderCount,
-            uint256 queueLength
-        ) = hook.getAuctionInfo(auctionId);
-        
+        (address auctionSeller, address token, bool isActive, bool revealed, uint256 bidderCount, uint256 queueLength) =
+            hook.getAuctionInfo(auctionId);
+
         console.log("Current Auction State:");
         console.log("---------------------");
         console.log("Auction ID:", auctionId);

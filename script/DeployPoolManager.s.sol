@@ -17,7 +17,7 @@ contract DeployPoolManagerScript is Script {
         vm.stopBroadcast();
 
         console.log("PoolManager deployed at:", address(poolManager));
-        
+
         return poolManager;
     }
 }

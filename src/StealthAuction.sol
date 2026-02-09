@@ -20,6 +20,7 @@ pragma solidity ^0.8.26;
 // Uniswap v4 Imports
 import {BaseHook} from "v4-periphery/src/utils/BaseHook.sol";
 import {Hooks} from "@uniswap/v4-core/src/libraries/Hooks.sol";
+import {IHooks} from "@uniswap/v4-core/src/interfaces/IHooks.sol";
 import {IPoolManager} from "@uniswap/v4-core/src/interfaces/IPoolManager.sol";
 import {SwapParams, ModifyLiquidityParams} from "@uniswap/v4-core/src/types/PoolOperation.sol";
 import {Currency} from "@uniswap/v4-core/src/types/Currency.sol";
@@ -69,7 +70,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         PoolId poolId; // Associated pool ID
         euint128 startPrice; // Encrypted starting price
         euint128 endPrice; // Encrypted ending price
-        euint64 duration; // Encrypted auction duration
+        euint64 duration; // Encrypted auction duration // @audit could this get truncated?
         euint128 totalSupply; // Encrypted total token supply
         euint128 soldAmount; // Encrypted amount sold so far
         euint64 startTime; // Encrypted start timestamp
@@ -166,15 +167,18 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
     // =============================================================
 
     function getHookPermissions() public pure override returns (Hooks.Permissions memory) {
+        // Production-safe: rely only on the core swap/liquidity hooks.
+        // We intentionally disable afterInitialize to avoid tight coupling to PoolManager.initialize
+        // and to follow Uniswap's recommended pattern of mining hook addresses off-chain.
         return Hooks.Permissions({
             beforeInitialize: false,
-            afterInitialize: true, // ✅ RE-ENABLED: Following Iceberg pattern
-            beforeAddLiquidity: true, // ✅ ENABLED: Per comprehensive fix plan
+            afterInitialize: false,
+            beforeAddLiquidity: true,
             afterAddLiquidity: false,
             beforeRemoveLiquidity: false,
             afterRemoveLiquidity: false,
-            beforeSwap: true, // ✅ EXISTING: Core auction logic
-            afterSwap: true, // ✅ RE-ENABLED: Following Iceberg pattern
+            beforeSwap: true,
+            afterSwap: true,
             beforeDonate: false,
             afterDonate: false,
             beforeSwapReturnDelta: false,
@@ -237,10 +241,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
 
         // Store in temporary mapping to pass to next helper
         _tempAuctionEncryption[auctionId] = TempEncryptionData({
-            startPrice: encStartPrice,
-            endPrice: encEndPrice,
-            duration: encDuration,
-            supply: encSupply
+            startPrice: encStartPrice, endPrice: encEndPrice, duration: encDuration, supply: encSupply
         });
     }
 
@@ -280,7 +281,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
             token: token,
             parametersRevealed: false,
             decayRate: decayRate,
-            bidQueue: bidQueue
+            bidQueue: bidQueue // @audit bidQueue is empty
         });
 
         // Clean up temporary data
@@ -295,7 +296,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         DutchAuctionData storage auction = auctions[auctionId];
 
         if (auction.seller == address(0)) revert AuctionNotFound();
-        if (bids[auctionId][msg.sender].bidder != address(0)) revert BidAlreadyExists();
+        if (bids[auctionId][msg.sender].bidder != address(0)) revert BidAlreadyExists(); // @audit prevents the same user from making multiple bids
 
         // ✅ Step 2: Call Operation
         euint128 encBidAmount = FHE.asEuint128(bidAmount);
@@ -332,7 +333,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         bids[auctionId][msg.sender] = BidData({
             bidAmount: encBidAmount,
             allocation: allocation,
-            bidder: msg.sender,
+            bidder: msg.sender, // @audit can this be anything other than msg.sender? redundant if not
             timestamp: block.timestamp,
             settled: false
         });
@@ -358,29 +359,9 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
     //                      HOOK CALLBACKS
     // =============================================================
 
-    function _afterInitialize(address, PoolKey calldata key, uint160, int24)
-        internal
-        override
-        onlyByManager
-        returns (bytes4)
-    {
-        PoolId poolId = key.toId();
-
-        // Initialize auction infrastructure for this pool (following Iceberg pattern)
-        poolAuctionCount[poolId] = 0;
-
-        // Set up initial FHE permissions for pool currencies
-        euint128 initialAmount = FHE.asEuint128(0);
-
-        // ✅ Grant permissions for future operations
-        FHE.allow(initialAmount, Currency.unwrap(key.currency0));
-        FHE.allow(initialAmount, Currency.unwrap(key.currency1));
-        FHE.allowThis(initialAmount);
-
-        emit PoolInitialized(poolId, Currency.unwrap(key.currency0), Currency.unwrap(key.currency1));
-
-        return BaseHook.afterInitialize.selector;
-    }
+    // Note: We intentionally do not opt into afterInitialize in getHookPermissions, so BaseHook.afterInitialize
+    // will never be called by the PoolManager. Any per-pool initialization required for auctions should be
+    // performed lazily when the first auction is created for a given PoolId (see createEncryptedAuction).
 
     function _beforeAddLiquidity(address, PoolKey calldata key, ModifyLiquidityParams calldata params, bytes calldata)
         internal
@@ -588,7 +569,14 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         auction.startPrice = adjustedStartPrice;
     }
 
-    function updateAuctionPostSwap(PoolId poolId, SwapParams calldata, /* params */ BalanceDelta delta) internal {
+    function updateAuctionPostSwap(
+        PoolId poolId,
+        SwapParams calldata,
+        /* params */
+        BalanceDelta delta
+    )
+        internal
+    {
         uint256[] memory activeAuctions = getActiveAuctionsForPool(poolId);
 
         if (activeAuctions.length > 0) {
@@ -735,11 +723,7 @@ contract StealthAuction is BaseHook, ReentrancyGuardTransient {
         FHE.allowThis(bid.bidAmount);
 
         // Execute encrypted token transfer using IFHERC20
-        IFHERC20(auction.token).transferFromEncrypted(
-            address(this),
-            bidder,
-            bid.allocation
-        );
+        IFHERC20(auction.token).transferFromEncrypted(address(this), bidder, bid.allocation);
 
         bid.settled = true;
         emit BidSettled(auctionId, bidder, block.timestamp);
