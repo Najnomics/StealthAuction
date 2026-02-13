@@ -6,9 +6,6 @@ broadcast/
 # Dependencies
 node_modules/
 
-# Frontend
-frontend/
-
 # Context directories
 context/
 
