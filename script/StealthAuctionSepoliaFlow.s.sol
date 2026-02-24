@@ -23,7 +23,9 @@ contract StealthAuctionSepoliaFlow is Script {
 
         uint256 sellerPk = vm.envUint("PRIVATE_KEY");
         uint256 ownerPk = _optionalPk("OWNER_PRIVATE_KEY", sellerPk);
+        // intentionally reversed order to test the script
         uint256 bidder2Pk = vm.envUint("BIDDER1_PRIVATE_KEY");
+        // intentionally reversed order to test the script
         uint256 bidder1Pk = vm.envUint("BIDDER2_PRIVATE_KEY");
 
         address seller = vm.addr(sellerPk);
