@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useEncryptInput } from "./useEncryptInput";
 import { FheTypes } from "@cofhe/sdk";
+import { useAccount } from "wagmi";
 import { IntegerInput, IntegerVariant } from "~~/components/scaffold-eth";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
@@ -36,6 +37,10 @@ export const StealthAuctionComponent = () => {
       <div className="divider"></div>
       
       <AuctionStatusSection />
+
+      <div className="divider"></div>
+
+      <EncryptedPayloadExporterSection />
     </div>
   );
 };
@@ -262,6 +267,198 @@ const AuctionStatusSection = () => {
             <p className="text-sm text-gray-500">Auction data loaded (encrypted)</p>
             {/* Display encrypted auction parameters here */}
           </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+type EncryptedInputLike = {
+  ctHash: bigint | number | string;
+  securityZone: bigint | number | string;
+  utype: bigint | number | string;
+  signature: string;
+};
+
+const toEnvBlock = (prefix: string, value: EncryptedInputLike) => {
+  return [
+    `${prefix}_CTHASH=${value.ctHash.toString()}`,
+    `${prefix}_SECURITY_ZONE=${value.securityZone.toString()}`,
+    `${prefix}_UTYPE=${value.utype.toString()}`,
+    `${prefix}_SIGNATURE=${value.signature}`,
+  ].join("\n");
+};
+
+/**
+ * EncryptedPayloadExporterSection
+ *
+ * Generates encrypted payloads in the exact InEuint format expected by
+ * script/StealthAuctionSepoliaFlow.s.sol and renders copy/paste env lines.
+ */
+const EncryptedPayloadExporterSection = () => {
+  const { address: connectedAddress } = useAccount();
+  const [startPrice, setStartPrice] = useState<string>("10000000000000000000");
+  const [endPrice, setEndPrice] = useState<string>("1000000000000000000");
+  const [duration, setDuration] = useState<string>("3600");
+  const [tokenSupply, setTokenSupply] = useState<string>("1000000000000000000000");
+  const [auctionSupply, setAuctionSupply] = useState<string>("1000000000000000000000");
+  const [bid1, setBid1] = useState<string>("8000000000000000000");
+  const [bid2, setBid2] = useState<string>("6000000000000000000");
+  const [decayRate, setDecayRate] = useState<string>("100");
+  const [baseEnvOutput, setBaseEnvOutput] = useState<string>("");
+  const [bid1EnvOutput, setBid1EnvOutput] = useState<string>("");
+  const [bid2EnvOutput, setBid2EnvOutput] = useState<string>("");
+  const [bid1Signer, setBid1Signer] = useState<string>("");
+  const [bid2Signer, setBid2Signer] = useState<string>("");
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const { onEncryptInput, isEncryptingInput, inputEncryptionDisabled } = useEncryptInput();
+
+  const handleGenerateAuctionPayload = useCallback(async () => {
+    const encStart = await onEncryptInput(FheTypes.Uint128, startPrice);
+    const encEnd = await onEncryptInput(FheTypes.Uint128, endPrice);
+    const encDuration = await onEncryptInput(FheTypes.Uint64, duration);
+    const encTokenSupply = await onEncryptInput(FheTypes.Uint128, tokenSupply);
+    const encAuctionSupply = await onEncryptInput(FheTypes.Uint128, auctionSupply);
+
+    if (!encStart || !encEnd || !encDuration || !encTokenSupply || !encAuctionSupply) return;
+
+    const block = [
+      toEnvBlock("ENC_START_PRICE", encStart as EncryptedInputLike),
+      "",
+      toEnvBlock("ENC_END_PRICE", encEnd as EncryptedInputLike),
+      "",
+      toEnvBlock("ENC_DURATION", encDuration as EncryptedInputLike),
+      "",
+      toEnvBlock("ENC_TOKEN_SUPPLY", encTokenSupply as EncryptedInputLike),
+      "",
+      toEnvBlock("ENC_AUCTION_SUPPLY", encAuctionSupply as EncryptedInputLike),
+      "",
+      `DECAY_RATE=${decayRate}`,
+    ].join("\n");
+
+    setBaseEnvOutput(block);
+    setCopied(false);
+  }, [auctionSupply, decayRate, duration, endPrice, onEncryptInput, startPrice, tokenSupply]);
+
+  const handleGenerateBid1 = useCallback(async () => {
+    if (!connectedAddress) return;
+    const encBid1 = await onEncryptInput(FheTypes.Uint128, bid1);
+    if (!encBid1) return;
+    setBid1EnvOutput(toEnvBlock("ENC_BID1", encBid1 as EncryptedInputLike));
+    setBid1Signer(connectedAddress);
+    setCopied(false);
+  }, [bid1, connectedAddress, onEncryptInput]);
+
+  const handleGenerateBid2 = useCallback(async () => {
+    if (!connectedAddress) return;
+    const encBid2 = await onEncryptInput(FheTypes.Uint128, bid2);
+    if (!encBid2) return;
+    setBid2EnvOutput(toEnvBlock("ENC_BID2", encBid2 as EncryptedInputLike));
+    setBid2Signer(connectedAddress);
+    setCopied(false);
+  }, [bid2, connectedAddress, onEncryptInput]);
+
+  const envOutput = useMemo(() => {
+    if (!baseEnvOutput && !bid1EnvOutput && !bid2EnvOutput) return "";
+    return [
+      baseEnvOutput,
+      bid1Signer ? `# ENC_BID1 signed by ${bid1Signer}` : "",
+      bid1EnvOutput,
+      bid2Signer ? `# ENC_BID2 signed by ${bid2Signer}` : "",
+      bid2EnvOutput,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }, [baseEnvOutput, bid1EnvOutput, bid1Signer, bid2EnvOutput, bid2Signer]);
+
+  const handleCopy = useCallback(async () => {
+    if (!envOutput) return;
+    await navigator.clipboard.writeText(envOutput);
+    setCopied(true);
+  }, [envOutput]);
+
+  return (
+    <div className="w-full">
+      <h3 className="font-bold text-lg mb-4">Sepolia Encrypted Input Exporter</h3>
+      <div className="flex flex-col gap-3">
+        <div className="text-left text-xs text-gray-500">
+          Connected signer for next action: {connectedAddress ?? "Not connected"}
+        </div>
+        <div className="text-left text-xs text-gray-500">
+          Generate auction payload once, then switch wallet before generating each bid payload.
+        </div>
+        <div className="flex flex-row gap-2 items-center">
+          <label className="w-40 text-left">Start Price:</label>
+          <IntegerInput value={startPrice} onChange={setStartPrice} variant={IntegerVariant.UINT128} disableMultiplyBy1e18 />
+        </div>
+        <div className="flex flex-row gap-2 items-center">
+          <label className="w-40 text-left">End Price:</label>
+          <IntegerInput value={endPrice} onChange={setEndPrice} variant={IntegerVariant.UINT128} disableMultiplyBy1e18 />
+        </div>
+        <div className="flex flex-row gap-2 items-center">
+          <label className="w-40 text-left">Duration (sec):</label>
+          <IntegerInput value={duration} onChange={setDuration} variant={IntegerVariant.UINT64} disableMultiplyBy1e18 />
+        </div>
+        <div className="flex flex-row gap-2 items-center">
+          <label className="w-40 text-left">Token Supply:</label>
+          <IntegerInput value={tokenSupply} onChange={setTokenSupply} variant={IntegerVariant.UINT128} disableMultiplyBy1e18 />
+        </div>
+        <div className="flex flex-row gap-2 items-center">
+          <label className="w-40 text-left">Auction Supply:</label>
+          <IntegerInput
+            value={auctionSupply}
+            onChange={setAuctionSupply}
+            variant={IntegerVariant.UINT128}
+            disableMultiplyBy1e18
+          />
+        </div>
+        <div className="flex flex-row gap-2 items-center">
+          <label className="w-40 text-left">Bid 1:</label>
+          <IntegerInput value={bid1} onChange={setBid1} variant={IntegerVariant.UINT128} disableMultiplyBy1e18 />
+        </div>
+        <div className="flex flex-row gap-2 items-center">
+          <label className="w-40 text-left">Bid 2:</label>
+          <IntegerInput value={bid2} onChange={setBid2} variant={IntegerVariant.UINT128} disableMultiplyBy1e18 />
+        </div>
+        <div className="flex flex-row gap-2 items-center">
+          <label className="w-40 text-left">Decay Rate:</label>
+          <IntegerInput value={decayRate} onChange={setDecayRate} variant={IntegerVariant.UINT256} disableMultiplyBy1e18 />
+        </div>
+        <button
+          className={`btn btn-secondary ${isEncryptingInput || inputEncryptionDisabled ? "btn-disabled" : ""}`}
+          onClick={handleGenerateAuctionPayload}
+        >
+          {isEncryptingInput && <span className="loading loading-spinner loading-xs"></span>}
+          Generate Auction Env Payload
+        </button>
+        <button
+          className={`btn btn-outline ${isEncryptingInput || inputEncryptionDisabled || !connectedAddress ? "btn-disabled" : ""}`}
+          onClick={handleGenerateBid1}
+        >
+          {isEncryptingInput && <span className="loading loading-spinner loading-xs"></span>}
+          Generate ENC_BID1 with Current Wallet
+        </button>
+        {bid1Signer && <div className="text-left text-xs text-gray-500">ENC_BID1 signer: {bid1Signer}</div>}
+        <button
+          className={`btn btn-outline ${isEncryptingInput || inputEncryptionDisabled || !connectedAddress ? "btn-disabled" : ""}`}
+          onClick={handleGenerateBid2}
+        >
+          {isEncryptingInput && <span className="loading loading-spinner loading-xs"></span>}
+          Generate ENC_BID2 with Current Wallet
+        </button>
+        {bid2Signer && <div className="text-left text-xs text-gray-500">ENC_BID2 signer: {bid2Signer}</div>}
+        {envOutput && (
+          <>
+            <button className="btn btn-outline btn-sm self-start" onClick={handleCopy}>
+              {copied ? "Copied" : "Copy .env block"}
+            </button>
+            <textarea
+              className="textarea textarea-bordered w-full h-64 font-mono text-xs"
+              readOnly
+              value={envOutput}
+            />
+          </>
         )}
       </div>
     </div>

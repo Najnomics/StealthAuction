@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
-import { arbSepolia, hardhat, sepolia } from "@cofhe/sdk/chains";
+import { arbSepolia, baseSepolia, hardhat, sepolia } from "@cofhe/sdk/chains";
 import {
   CreateSelfPermitOptions,
   CreateSharingPermitOptions,
@@ -19,7 +19,7 @@ import { notification } from "~~/utils/scaffold-eth";
 
 const config = createCofhesdkConfig({
   // mirrors scaffoldConfig.targetNetworks
-  supportedChains: [hardhat, sepolia, arbSepolia],
+  supportedChains: [hardhat, sepolia, arbSepolia, baseSepolia],
   mocks: {
     sealOutputDelay: 1000,
   },

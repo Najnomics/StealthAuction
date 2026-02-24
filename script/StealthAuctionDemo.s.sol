@@ -48,6 +48,10 @@ contract StealthAuctionDemo is Script, CoFheTest {
     event AuctionSettled(uint256 indexed auctionId, string outcome);
 
     function run() external {
+        // Scripts need explicit cheatcode access for CoFheTest mock verifier contracts.
+        vm.allowCheatcodes(ZK_VERIFIER_SIGNER_ADDRESS);
+        vm.allowCheatcodes(ZK_VERIFIER_ADDRESS);
+
         _loadConfiguration();
         _setupParticipants();
 
@@ -91,8 +95,8 @@ contract StealthAuctionDemo is Script, CoFheTest {
     }
 
     function _setupParticipants() internal {
-        // Create demo participants
-        seller = vm.addr(1);
+        // Use the auction token owner as seller so owner-only token calls succeed in mock flow.
+        seller = StealthAuctionToken(auctionToken).owner();
         bidder1 = vm.addr(2);
         bidder2 = vm.addr(3);
         bidder3 = vm.addr(4);
@@ -110,7 +114,7 @@ contract StealthAuctionDemo is Script, CoFheTest {
         vm.deal(bidder3, 100 ether);
 
         // Distribute auction tokens to seller
-        vm.startPrank(msg.sender); // Deployer
+        vm.startPrank(seller);
         StealthAuctionToken(auctionToken).mint(seller, 10000 ether);
         vm.stopPrank();
 
@@ -136,15 +140,15 @@ contract StealthAuctionDemo is Script, CoFheTest {
         config.bidAmounts[1] = 6 ether;
         config.bidAmounts[2] = 9 ether;
 
-        vm.startBroadcast(msg.sender);
+        vm.startPrank(seller);
 
         // Initialize auction token supply (as token owner)
-        InEuint128 memory encSupplyForToken = _createEncryptedInput(uint128(config.auctionSupply), msg.sender);
+        InEuint128 memory encSupplyForToken = _createEncryptedInput(uint128(config.auctionSupply), seller);
         StealthAuctionToken(auctionToken).initializeAuctionSupply(stealthAuctionHook, encSupplyForToken);
 
-        vm.stopBroadcast();
+        vm.stopPrank();
 
-        vm.startBroadcast(seller);
+        vm.startPrank(seller);
 
         // Seller creates encrypted auction parameters
         InEuint128 memory encStartPrice = _createEncryptedInput(uint128(config.startPrice), seller);
@@ -157,7 +161,7 @@ contract StealthAuctionDemo is Script, CoFheTest {
                 poolId, auctionToken, encStartPrice, encEndPrice, encDuration, encSupplyForAuction, config.decayRate
             );
 
-        vm.stopBroadcast();
+        vm.stopPrank();
 
         console.log("Auction created with ID:", auctionId);
         console.log("Encrypted parameters stored on-chain");
@@ -176,28 +180,28 @@ contract StealthAuctionDemo is Script, CoFheTest {
         uint256 auctionId = 1; // From phase 1
 
         // Bidder 1: Submit encrypted bid
-        vm.startBroadcast(bidder1);
+        vm.startPrank(bidder1);
         InEuint128 memory bid1 = _createEncryptedInput(uint128(8 ether), bidder1);
         StealthAuction(stealthAuctionHook).submitEncryptedBid(auctionId, bid1);
-        vm.stopBroadcast();
+        vm.stopPrank();
 
         console.log("Bidder1 submitted encrypted bid: [ENCRYPTED] ~8 ETH");
         emit BidSubmitted(auctionId, bidder1, "High value encrypted bid");
 
         // Bidder 2: Submit encrypted bid
-        vm.startBroadcast(bidder2);
+        vm.startPrank(bidder2);
         InEuint128 memory bid2 = _createEncryptedInput(uint128(6 ether), bidder2);
         StealthAuction(stealthAuctionHook).submitEncryptedBid(auctionId, bid2);
-        vm.stopBroadcast();
+        vm.stopPrank();
 
         console.log("Bidder2 submitted encrypted bid: [ENCRYPTED] ~6 ETH");
         emit BidSubmitted(auctionId, bidder2, "Medium value encrypted bid");
 
         // Bidder 3: Submit encrypted bid
-        vm.startBroadcast(bidder3);
+        vm.startPrank(bidder3);
         InEuint128 memory bid3 = _createEncryptedInput(uint128(9 ether), bidder3);
         StealthAuction(stealthAuctionHook).submitEncryptedBid(auctionId, bid3);
-        vm.stopBroadcast();
+        vm.stopPrank();
 
         console.log("Bidder3 submitted encrypted bid: [ENCRYPTED] ~9 ETH");
         emit BidSubmitted(auctionId, bidder3, "Highest value encrypted bid");
@@ -256,12 +260,12 @@ contract StealthAuctionDemo is Script, CoFheTest {
         vm.warp(block.timestamp + 1800); // Another 30 minutes (total 1 hour)
         console.log("Auction duration completed");
 
-        vm.startBroadcast(msg.sender);
+        vm.startPrank(seller);
 
         // Settle the auction
         StealthAuction(stealthAuctionHook).settleAuction(auctionId);
 
-        vm.stopBroadcast();
+        vm.stopPrank();
 
         console.log("Auction settled successfully");
         console.log("Settlement process:");
@@ -279,12 +283,12 @@ contract StealthAuctionDemo is Script, CoFheTest {
 
         uint256 auctionId = 1;
 
-        vm.startBroadcast(seller);
+        vm.startPrank(seller);
 
         // Reveal parameters (seller's choice)
         StealthAuction(stealthAuctionHook).revealParameters(auctionId);
 
-        vm.stopBroadcast();
+        vm.stopPrank();
 
         console.log("Auction parameters revealed by seller");
         console.log("This allows participants to verify the auction was fair");

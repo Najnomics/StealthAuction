@@ -148,6 +148,47 @@ forge script script/StealthAuctionFlow.s.sol:StealthAuctionFlow \
   --legacy
 ```
 
+### 6. Production Base Sepolia Flow (No Mocks)
+Use this flow for real Base Sepolia execution with frontend-generated encrypted payloads.
+
+#### Step A: Generate InEuint payloads from frontend
+1. Open the frontend and connect wallet + CoFHE.
+2. In **StealthAuction Hook** page, use **Sepolia Encrypted Input Exporter**.
+3. Click **Generate Encrypted Env Payload** and copy the output.
+4. Paste the output into your shell (or `.env.local` for command export).
+
+This exporter generates:
+- `ENC_START_PRICE_*` (InEuint128)
+- `ENC_END_PRICE_*` (InEuint128)
+- `ENC_DURATION_*` (InEuint64)
+- `ENC_TOKEN_SUPPLY_*` (InEuint128)
+- `ENC_AUCTION_SUPPLY_*` (InEuint128)
+- `ENC_BID1_*`, `ENC_BID2_*` (InEuint128)
+- `DECAY_RATE`
+
+#### Step B: Set required addresses/keys
+```bash
+export RPC_URL=https://sepolia.base.org
+export PRIVATE_KEY=0x...              # seller private key
+export OWNER_PRIVATE_KEY=0x...        # token owner private key (optional, defaults to PRIVATE_KEY)
+export BIDDER1_PRIVATE_KEY=0x...
+export BIDDER2_PRIVATE_KEY=0x...
+
+export STEALTH_AUCTION_HOOK=0x...
+export AUCTION_TOKEN=0x...
+export TOKEN0=0x...
+export TOKEN1=0x...
+```
+
+#### Step C: Execute Sepolia flow script
+```bash
+forge script script/StealthAuctionSepoliaFlow.s.sol:StealthAuctionSepoliaFlow \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast \
+  --legacy
+```
+
 ## Demo Walkthrough
 
 The demo demonstrates the complete FHE Dutch auction lifecycle:
